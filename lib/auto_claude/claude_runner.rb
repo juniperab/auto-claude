@@ -78,10 +78,7 @@ module AutoClaude
 
             case json["type"]
             when "assistant", "user"
-              MessageFormatter.format_messages(json).each do |msg|
-                next unless msg # Skip nil messages
-                ColorPrinter.print_message msg, color: :white
-              end
+              MessageFormatter.format_and_print_messages(json)
             when "result"
               result += handle_result(json) || ""
             when "system"

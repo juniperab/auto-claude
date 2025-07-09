@@ -7,12 +7,29 @@ module AutoClaude
   module MessageFormatter
     extend self
 
-    def format_messages(json)
+    def format_and_print_messages(json)
       messages = json.dig("message", "content") || []
-      messages.map(&method(:format_message))
+      messages.each { |msg| print_message(msg) }
     end
 
     private
+
+    def print_message(message)
+      formatted = format_message(message)
+      return unless formatted # Skip nil messages
+      
+      # Special case for TodoWrite - disable truncation
+      case message["type"]
+      when "tool_use"
+        if message["name"] == "TodoWrite"
+          ColorPrinter.print_message(formatted, color: :white, disable_truncation: true)
+        else
+          ColorPrinter.print_message(formatted, color: :white)
+        end
+      else
+        ColorPrinter.print_message(formatted, color: :white)
+      end
+    end
 
     def format_message(message)
       case message["type"]

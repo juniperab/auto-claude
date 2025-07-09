@@ -56,7 +56,7 @@ module AutoClaude
         $stderr.puts "Warning: Failed to write to log file: #{e.message}"
       end
       
-      def print_message(message, color: :cyan, max_lines: 5)
+      def print_message(message, color: :cyan, max_lines: 5, disable_truncation: false)
         return unless message
         
         lines = message.lines
@@ -77,15 +77,16 @@ module AutoClaude
         # Print remaining lines in regular color
         if lines.any?
           regular_color = COLORS.dig(color, :regular) || COLORS[:cyan][:regular]
-          lines.first(max_lines - 1).each do |line|
+          lines_to_print = disable_truncation ? lines : lines.first(max_lines - 1)
+          lines_to_print.each do |line|
             output_line = "  #{regular_color}#{line.chomp}#{RESET}"
             $stderr.puts output_line
             logged_lines << "  #{line.chomp}"
           end
         end
         
-        # Show truncation notice if needed
-        if total_lines > max_lines
+        # Show truncation notice if needed (only if truncation is enabled)
+        if !disable_truncation && total_lines > max_lines
           remaining = total_lines - max_lines
           truncation_msg = "    + #{remaining} line#{remaining == 1 ? '' : 's'} not shown"
           $stderr.puts "    #{COLORS[:light_gray][:regular]}#{truncation_msg}#{RESET}"
