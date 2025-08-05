@@ -163,6 +163,130 @@ module AutoClaude
 
         nil # No errors
       end
+
+      # Programmatic entrypoint for Ruby applications
+      # 
+      # @param prompt [String] The prompt to send to Claude
+      # @param directory [String, nil] Working directory for Claude command
+      # @param log_file [String, nil] Path to log file for all messages
+      # @param retry_on_error [Boolean] Retry up to 3 times on error using --resume
+      # @param claude_options [Array<String>] Additional options to pass to Claude
+      # @param output [IO] IO object to write output to (defaults to $stdout)
+      # @param error [IO] IO object to write errors to (defaults to $stderr)
+      # @param stderr_callback [Proc, nil] Callback for streaming stderr messages
+      #   The callback receives (message, type, color) where:
+      #   - message: the stderr message string
+      #   - type: :message or :stat
+      #   - color: the color symbol (:cyan, :blue, :red, etc.)
+      # 
+      # @return [String] The result from Claude
+      # @raise [RuntimeError] If Claude command fails
+      #
+      # @example Basic usage
+      #   result = AutoClaude::App.run("What is 2+2?")
+      #
+      # @example With options
+      #   result = AutoClaude::App.run(
+      #     "List files",
+      #     directory: "/tmp",
+      #     log_file: "/tmp/claude.log",
+      #     retry_on_error: true,
+      #     claude_options: ["--model", "opus"]
+      #   )
+      #
+      # @example Capturing output to a StringIO
+      #   output = StringIO.new
+      #   result = AutoClaude::App.run("Hello", output: output)
+      #   captured_output = output.string
+      #
+      # @example With streaming stderr callback
+      #   AutoClaude::App.run(
+      #     "Generate some code",
+      #     stderr_callback: -> (msg, type, color) { 
+      #       puts "[#{type}] #{msg}" 
+      #     }
+      #   )
+      def run(prompt, directory: nil, log_file: nil, retry_on_error: false, claude_options: [], output: $stdout, error: $stderr, stderr_callback: nil)
+        # Validate claude options
+        if !claude_options.empty?
+          validation_error = validate_claude_options(claude_options)
+          if validation_error
+            raise "Invalid claude options: #{validation_error}"
+          end
+        end
+
+        # Temporarily redirect stdout and stderr
+        original_stdout = $stdout
+        original_stderr = $stderr
+        original_stderr_callback = ColorPrinter.stderr_callback
+        
+        begin
+          $stdout = output
+          $stderr = error
+          ColorPrinter.stderr_callback = stderr_callback
+
+          # Create app instance and configure
+          app = new([], {}, {})
+          app.instance_variable_set(:@claude_options, claude_options)
+          app.instance_variable_set(:@directory, directory)
+          app.instance_variable_set(:@log_file, log_file)
+          app.instance_variable_set(:@retry_on_error, retry_on_error)
+          
+          # Capture the result instead of printing it
+          result = nil
+          app.define_singleton_method(:process) do |input|
+            # Run claude with the prompt
+            max_attempts = @retry_on_error ? 3 : 1
+            attempt = 0
+            last_session_id = nil
+            last_error = nil
+
+            while attempt < max_attempts
+              attempt += 1
+
+              # Add --resume option if we have a session ID from previous attempt
+              claude_opts = @claude_options || []
+              if last_session_id && attempt > 1
+                # Check if --resume is already in options
+                unless claude_opts.any? { |opt| opt == "--resume" }
+                  claude_opts = claude_opts + ["--resume", last_session_id]
+                  retry_msg = "  Retrying with --resume #{last_session_id} (attempt #{attempt}/#{max_attempts})..."
+                  $stderr.puts retry_msg
+                  ColorPrinter.stderr_callback&.call("#{retry_msg}\n", :message, :cyan)
+                end
+              end
+
+              begin
+                runner = ClaudeRunner.new(claude_options: claude_opts, directory: @directory, log_file: @log_file)
+                result = runner.run(input)
+                return result # Return instead of puts
+              rescue => e
+                last_error = e
+                # Try to extract session_id from the runner
+                last_session_id = runner.instance_variable_get(:@result_metadata)&.dig("session_id")
+
+                if attempt < max_attempts && @retry_on_error
+                  error_msg = "  Error occurred: #{e.message}"
+                  $stderr.puts error_msg
+                  ColorPrinter.stderr_callback&.call("#{error_msg}\n", :message, :red)
+                  sleep(1) # Small delay before retry
+                else
+                  # Final attempt failed or no retry option
+                  raise e
+                end
+              end
+            end
+          end
+          
+          # Run the process and return the result
+          app.process(prompt)
+        ensure
+          # Restore original stdout and stderr
+          $stdout = original_stdout
+          $stderr = original_stderr
+          ColorPrinter.stderr_callback = original_stderr_callback
+        end
+      end
     end
 
     desc "[PROMPT]", "Run Claude non-interactively"

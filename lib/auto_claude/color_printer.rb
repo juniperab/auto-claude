@@ -31,7 +31,7 @@ module AutoClaude
     RESET = "\e[0m".freeze
     
     class << self
-      attr_accessor :log_file_handle
+      attr_accessor :log_file_handle, :stderr_callback
       
       def set_log_file(filename)
         @log_file_handle = File.open(filename, 'w')
@@ -72,6 +72,11 @@ module AutoClaude
           output_line = "  #{color_code}#{first_line.chomp}#{RESET}"
           $stderr.puts output_line
           logged_lines << "  #{first_line.chomp}"
+          
+          # Call stderr callback if set
+          if @stderr_callback
+            @stderr_callback.call("  #{first_line.chomp}\n", :message, color)
+          end
         end
         
         # Print remaining lines in regular color
@@ -82,6 +87,11 @@ module AutoClaude
             output_line = "  #{regular_color}#{line.chomp}#{RESET}"
             $stderr.puts output_line
             logged_lines << "  #{line.chomp}"
+            
+            # Call stderr callback if set
+            if @stderr_callback
+              @stderr_callback.call("  #{line.chomp}\n", :message, color)
+            end
           end
         end
         
@@ -91,6 +101,11 @@ module AutoClaude
           truncation_msg = "    + #{remaining} line#{remaining == 1 ? '' : 's'} not shown"
           $stderr.puts "    #{COLORS[:light_gray][:regular]}#{truncation_msg}#{RESET}"
           logged_lines << "    #{truncation_msg}"
+          
+          # Call stderr callback if set
+          if @stderr_callback
+            @stderr_callback.call("    #{truncation_msg}\n", :message, :light_gray)
+          end
         end
         
         # Log all lines to file
@@ -101,6 +116,11 @@ module AutoClaude
         output_line = "  #{COLORS[:dark_gray][:regular]}#{message}#{RESET}"
         $stderr.puts output_line
         log_to_file("  #{message}")
+        
+        # Call stderr callback if set
+        if @stderr_callback
+          @stderr_callback.call("  #{message}\n", :stat, :dark_gray)
+        end
       end
     end
   end
