@@ -239,7 +239,6 @@ module AutoClaude
             max_attempts = @retry_on_error ? 3 : 1
             attempt = 0
             last_session_id = nil
-            last_error = nil
 
             while attempt < max_attempts
               attempt += 1
@@ -261,7 +260,6 @@ module AutoClaude
                 result = runner.run(input)
                 return result # Return instead of puts
               rescue => e
-                last_error = e
                 # Try to extract session_id from the runner
                 last_session_id = runner.instance_variable_get(:@result_metadata)&.dig("session_id")
 
@@ -308,7 +306,6 @@ module AutoClaude
       max_attempts = @retry_on_error ? 3 : 1
       attempt = 0
       last_session_id = nil
-      last_error = nil
 
       while attempt < max_attempts
         attempt += 1
@@ -329,7 +326,6 @@ module AutoClaude
           puts result
           return # Success - exit the method
         rescue => e
-          last_error = e
           # Try to extract session_id from the runner
           last_session_id = runner.instance_variable_get(:@result_metadata)&.dig("session_id")
 

@@ -75,7 +75,11 @@ module AutoClaude
           
           # Call stderr callback if set
           if @stderr_callback
-            @stderr_callback.call("  #{first_line.chomp}\n", :message, color)
+            begin
+              @stderr_callback.call("  #{first_line.chomp}\n", :message, color)
+            rescue
+              # Silently ignore callback errors to not interrupt the flow
+            end
           end
         end
         
@@ -90,7 +94,11 @@ module AutoClaude
             
             # Call stderr callback if set
             if @stderr_callback
-              @stderr_callback.call("  #{line.chomp}\n", :message, color)
+              begin
+                @stderr_callback.call("  #{line.chomp}\n", :message, color)
+              rescue => e
+                # Silently ignore callback errors to not interrupt the flow
+              end
             end
           end
         end
@@ -104,7 +112,11 @@ module AutoClaude
           
           # Call stderr callback if set
           if @stderr_callback
-            @stderr_callback.call("    #{truncation_msg}\n", :message, :light_gray)
+            begin
+              @stderr_callback.call("    #{truncation_msg}\n", :message, :light_gray)
+            rescue
+              # Silently ignore callback errors to not interrupt the flow
+            end
           end
         end
         
@@ -119,7 +131,11 @@ module AutoClaude
         
         # Call stderr callback if set
         if @stderr_callback
-          @stderr_callback.call("  #{message}\n", :stat, :dark_gray)
+          begin
+            @stderr_callback.call("  #{message}\n", :stat, :dark_gray)
+          rescue => e
+            # Silently ignore callback errors to not interrupt the flow
+          end
         end
       end
     end
