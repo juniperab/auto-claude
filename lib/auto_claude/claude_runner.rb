@@ -1,6 +1,7 @@
 require "json"
 require "open3"
 require "active_support/all"
+require "tempfile"
 
 module AutoClaude
   class ClaudeRunner
@@ -21,23 +22,23 @@ module AutoClaude
     def run(prompt)
       ColorPrinter.print_message "---", color: :cyan
 
-      result = if @directory.blank?
-        # Print log file location if provided
-        if @log_file
-          ColorPrinter.print_message "Log file: #{@log_file}", color: :dark_gray
-        end
-        run_internal(prompt)
-      else
-        raise "Directory does not exist: #{@directory}" unless File.directory?(@directory)
-        ColorPrinter.print_message "Working directory: #{@directory}", color: :dark_gray
-        # Print log file location if provided
-        if @log_file
-          ColorPrinter.print_message "Log file: #{@log_file}", color: :dark_gray
-        end
-        Dir.chdir(@directory) do
-          run_internal(prompt)
-        end
+      # Determine the working directory
+      working_dir = @directory || Dir.pwd
+      
+      # Validate directory exists
+      raise "Directory does not exist: #{working_dir}" unless File.directory?(working_dir)
+      
+      # Print working directory if specified
+      if @directory
+        ColorPrinter.print_message "Working directory: #{working_dir}", color: :dark_gray
       end
+      
+      # Print log file location if provided
+      if @log_file
+        ColorPrinter.print_message "Log file: #{@log_file}", color: :dark_gray
+      end
+      
+      result = run_internal(prompt, working_dir)
 
       ColorPrinter.print_message "---", color: :cyan
 
@@ -57,55 +58,155 @@ module AutoClaude
 
     private
 
-    def run_internal(prompt)
+    def run_internal(prompt, working_dir)
       print_prompt prompt
-      command = build_command
-      # ColorPrinter.print_message "> #{command.join(" ")}", color: :cyan
-      # ColorPrinter.print_message "---", color: :cyan
+      
+      # Use wrapper script approach for better directory isolation
+      if should_use_wrapper_script?
+        run_with_wrapper_script(prompt, working_dir)
+      else
+        run_with_popen3(prompt, working_dir)
+      end
+    end
 
+    def should_use_wrapper_script?
+      # Use wrapper script by default for better isolation
+      # Can be disabled with environment variable if needed
+      ENV['AUTO_CLAUDE_NO_WRAPPER'] != '1'
+    end
+
+    def run_with_wrapper_script(prompt, working_dir)
+      # Create a temporary shell script that changes directory before running claude
+      wrapper_script = Tempfile.new(['claude_wrapper', '.sh'])
+      begin
+        # Build the claude command
+        command = build_command
+        claude_command = command.map { |arg| "'#{arg.gsub("'", "'\\''")}'" }.join(" ")
+        
+        # Determine the shell to use - prefer user's default shell if it's zsh
+        shell = determine_shell
+        
+        # Write the wrapper script
+        wrapper_script.write(<<~SCRIPT)
+          #!#{shell}
+          cd "#{working_dir}"
+          # Clear some environment variables that might leak parent directory info
+          unset OLDPWD
+          export PWD="#{working_dir}"
+          # Remove any Ruby-related env vars that might contain paths
+          unset BUNDLE_GEMFILE
+          unset BUNDLE_BIN_PATH
+          unset RUBYLIB
+          unset RUBYOPT
+          # Execute claude
+          exec #{claude_command}
+        SCRIPT
+        wrapper_script.close
+        
+        # Make the script executable
+        File.chmod(0755, wrapper_script.path)
+        
+        result = ""
+        
+        # Execute the wrapper script
+        Open3.popen3(wrapper_script.path) do |stdin, stdout, stderr, wait_thread|
+          result = process_claude_interaction(stdin, stdout, stderr, wait_thread, prompt)
+        end
+        
+        result
+      ensure
+        # Clean up the wrapper script
+        wrapper_script.unlink
+      end
+    end
+
+    def run_with_popen3(prompt, working_dir)
+      command = build_command
       result = ""
 
-      begin
-        Open3.popen3(*command) do |stdin, stdout, stderr, wait_thread|
-          # Write prompt and close stdin
-          stdin.write(prompt)
-          stdin.close
-
-          # Process streaming output
-          stdout.each_line do |line|
-            json = parse_json(line)
-            next unless json
-
-            case json["type"]
-            when "assistant", "user"
-              MessageFormatter.format_and_print_messages(json)
-            when "result"
-              result += handle_result(json) || ""
-            when "system"
-              # Ignore system messages
-            else
-              $stderr.puts "Warning: Unexpected message type: #{json["type"]}"
-            end
-          end
-
-          # Check for errors
-          exit_status = wait_thread.value
-          unless exit_status.success?
-            error_output = stderr.read
-            @error = "Claude command failed with exit code #{exit_status.exitstatus}: #{error_output}"
-            # Create minimal metadata for logging
-            @result_metadata ||= {}
-            @result_metadata["success"] = false
-            @result_metadata["error_message"] = @error
-          end
-        end
-
-        if @result_metadata
-          print_usage_stats
-        end
-
-        result
+      # Use popen3 with chdir option to set the working directory
+      options = { chdir: working_dir }
+      Open3.popen3(*command, options) do |stdin, stdout, stderr, wait_thread|
+        result = process_claude_interaction(stdin, stdout, stderr, wait_thread, prompt)
       end
+      
+      result
+    end
+
+    def determine_shell
+      # Check if user's shell is zsh
+      user_shell = ENV['SHELL'] || ''
+      
+      # Check if /usr/bin/env exists for more portable shebangs
+      if File.executable?('/usr/bin/env')
+        if user_shell.end_with?('/zsh') && which('zsh')
+          return '/usr/bin/env zsh'
+        else
+          return '/usr/bin/env bash'
+        end
+      end
+      
+      # Fall back to direct paths if /usr/bin/env is not available
+      if user_shell.end_with?('/zsh')
+        # Verify zsh exists and is executable
+        zsh_path = which('zsh') || '/bin/zsh'
+        return zsh_path if File.executable?(zsh_path)
+      end
+      
+      # Fall back to bash
+      bash_path = which('bash') || '/bin/bash'
+      bash_path
+    end
+    
+    def which(cmd)
+      # Simple which implementation to find executable in PATH
+      ENV['PATH'].split(':').each do |path|
+        exe = File.join(path, cmd)
+        return exe if File.executable?(exe)
+      end
+      nil
+    end
+    
+    def process_claude_interaction(stdin, stdout, stderr, wait_thread, prompt)
+      result = ""
+      
+      # Write prompt and close stdin
+      stdin.write(prompt)
+      stdin.close
+
+      # Process streaming output
+      stdout.each_line do |line|
+        json = parse_json(line)
+        next unless json
+
+        case json["type"]
+        when "assistant", "user"
+          MessageFormatter.format_and_print_messages(json)
+        when "result"
+          result += handle_result(json) || ""
+        when "system"
+          # Ignore system messages
+        else
+          $stderr.puts "Warning: Unexpected message type: #{json["type"]}"
+        end
+      end
+
+      # Check for errors
+      exit_status = wait_thread.value
+      unless exit_status.success?
+        error_output = stderr.read
+        @error = "Claude command failed with exit code #{exit_status.exitstatus}: #{error_output}"
+        # Create minimal metadata for logging
+        @result_metadata ||= {}
+        @result_metadata["success"] = false
+        @result_metadata["error_message"] = @error
+      end
+
+      if @result_metadata
+        print_usage_stats
+      end
+
+      result
     end
 
     def build_command
@@ -148,8 +249,8 @@ module AutoClaude
       cost = @result_metadata["total_cost_usd"] || 0
       num_turns = @result_metadata["num_turns"] || 0
       duration_ms = @result_metadata["duration_ms"] || 0
-      input_tokens = @result_metadata["usage"]["input_tokens"] || 0
-      output_tokens = @result_metadata["usage"]["output_tokens"] || 0
+      input_tokens = @result_metadata.dig("usage", "input_tokens") || 0
+      output_tokens = @result_metadata.dig("usage", "output_tokens") || 0
       session_id = @result_metadata["session_id"]
 
       duration_seconds = duration_ms / 1000.0
