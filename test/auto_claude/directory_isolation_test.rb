@@ -82,26 +82,23 @@ class AutoClaude::DirectoryIsolationTest < Minitest::Test
     end
   end
 
-  def test_popen3_receives_chdir_option
-    # This test verifies the implementation without running claude
-    captured_options = nil
-    captured = false
+  def test_wrapper_script_is_used
+    # This test verifies that the wrapper script is always used
+    wrapper_path_used = nil
     
     Open3.stub :popen3, -> (*args) {
-      if args.last.is_a?(Hash)
-        captured_options = args.pop
-        captured = true
-      end
+      # Capture the command being executed
+      wrapper_path_used = args.first if args.first && args.first.include?('claude_wrapper')
       
       # Minimal mock to not crash
       stdin = StringIO.new
-      stdout = StringIO.new
+      stdout = StringIO.new('{"type":"result","subtype":"success","result":"test"}' + "\n")
       stderr = StringIO.new
       wait_thread = Object.new
       def wait_thread.value
         status = Object.new
-        def status.success?; false; end
-        def status.exitstatus; 1; end
+        def status.success?; true; end
+        def status.exitstatus; 0; end
         status
       end
       
@@ -109,23 +106,12 @@ class AutoClaude::DirectoryIsolationTest < Minitest::Test
     } do
       Dir.mktmpdir do |tmpdir|
         runner = AutoClaude::ClaudeRunner.new(directory: tmpdir)
+        runner.run("Test")
         
-        # We expect this to fail due to mock, but we just want to capture the options
-        begin
-          runner.run("Test")
-        rescue => e
-          # Expected to fail with our mock
-        end
-        
-        # With wrapper script, we won't capture chdir option directly
-        # Instead, the directory is handled in the wrapper script
-        if ENV['AUTO_CLAUDE_NO_WRAPPER'] == '1'
-          assert captured, "popen3 options were not captured"
-          assert_equal tmpdir, captured_options[:chdir]
-        else
-          # With wrapper script, options might be empty
-          # This is expected behavior
-        end
+        # Verify that a wrapper script was used
+        refute_nil wrapper_path_used, "Should use wrapper script"
+        assert wrapper_path_used.include?("claude_wrapper"), "Should use claude_wrapper script"
+        assert wrapper_path_used.end_with?(".sh"), "Wrapper should be a shell script"
       end
     end
   end

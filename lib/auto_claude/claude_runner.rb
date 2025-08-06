@@ -60,19 +60,7 @@ module AutoClaude
 
     def run_internal(prompt, working_dir)
       print_prompt prompt
-      
-      # Use wrapper script approach for better directory isolation
-      if should_use_wrapper_script?
-        run_with_wrapper_script(prompt, working_dir)
-      else
-        run_with_popen3(prompt, working_dir)
-      end
-    end
-
-    def should_use_wrapper_script?
-      # Use wrapper script by default for better isolation
-      # Can be disabled with environment variable if needed
-      ENV['AUTO_CLAUDE_NO_WRAPPER'] != '1'
+      run_with_wrapper_script(prompt, working_dir)
     end
 
     def run_with_wrapper_script(prompt, working_dir)
@@ -120,18 +108,6 @@ module AutoClaude
       end
     end
 
-    def run_with_popen3(prompt, working_dir)
-      command = build_command
-      result = ""
-
-      # Use popen3 with chdir option to set the working directory
-      options = { chdir: working_dir }
-      Open3.popen3(*command, options) do |stdin, stdout, stderr, wait_thread|
-        result = process_claude_interaction(stdin, stdout, stderr, wait_thread, prompt)
-      end
-      
-      result
-    end
 
     def determine_shell
       # Check if user's shell is zsh

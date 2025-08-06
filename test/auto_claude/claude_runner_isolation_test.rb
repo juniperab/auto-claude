@@ -7,8 +7,7 @@ class ClaudeRunnerIsolationTest < Minitest::Test
     skip "Skipping real Claude test" unless ENV['TEST_REAL_CLAUDE'] == '1'
     
     Dir.mktmpdir do |tmpdir|
-      # Ensure wrapper script is enabled (default)
-      ENV.delete('AUTO_CLAUDE_NO_WRAPPER')
+      # Wrapper script is now always used
       
       runner = AutoClaude::ClaudeRunner.new(directory: tmpdir)
       result = runner.run("What directories do you have access to? Do you see any reference to 'auto-claude' directory?")
@@ -23,23 +22,6 @@ class ClaudeRunnerIsolationTest < Minitest::Test
     end
   end
   
-  def test_wrapper_script_can_be_disabled
-    skip "Skipping real Claude test" unless ENV['TEST_REAL_CLAUDE'] == '1'
-    
-    Dir.mktmpdir do |tmpdir|
-      # Disable wrapper script
-      ENV['AUTO_CLAUDE_NO_WRAPPER'] = '1'
-      
-      runner = AutoClaude::ClaudeRunner.new(directory: tmpdir)
-      result = runner.run("What directories do you have access to? List any additional working directories.")
-      
-      # When wrapper is disabled, Claude might see the parent directory
-      # This test just ensures the option works, not that it's desirable
-      assert result.length > 0, "Claude should return a response"
-    ensure
-      ENV.delete('AUTO_CLAUDE_NO_WRAPPER')
-    end
-  end
   
   def test_wrapper_script_cleans_up_after_itself
     Dir.mktmpdir do |tmpdir|
@@ -142,18 +124,4 @@ class ClaudeRunnerIsolationTest < Minitest::Test
     end
   end
   
-  def test_should_use_wrapper_script_by_default
-    runner = AutoClaude::ClaudeRunner.new
-    assert runner.send(:should_use_wrapper_script?),
-      "Wrapper script should be enabled by default"
-  end
-  
-  def test_should_use_wrapper_script_can_be_disabled
-    ENV['AUTO_CLAUDE_NO_WRAPPER'] = '1'
-    runner = AutoClaude::ClaudeRunner.new
-    refute runner.send(:should_use_wrapper_script?),
-      "Wrapper script should be disabled when AUTO_CLAUDE_NO_WRAPPER=1"
-  ensure
-    ENV.delete('AUTO_CLAUDE_NO_WRAPPER')
-  end
 end
