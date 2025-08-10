@@ -20,6 +20,7 @@ module AutoClaude
 
       def execute(prompt)
         @start_time = Time.now
+        @output.write_divider
         @output.write_info("Working directory: #{@directory}")
         @output.write_divider
         
@@ -130,6 +131,8 @@ module AutoClaude
         if @metadata["session_id"]
           @output.write_stat("Session ID", @metadata["session_id"])
         end
+        
+        @output.write_divider
       end
   end
 end

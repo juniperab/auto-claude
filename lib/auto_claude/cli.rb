@@ -32,30 +32,82 @@ module AutoClaude
           claude_options: options[:claude_options] || []
         )
         
-        begin
-          session = client.run(prompt)
-          
-          # Print result to stdout
-          if session.result
-            puts session.result.content unless session.result.content.empty?
-            
-            # Write metadata to log file if specified
-            if options[:log_file] && output.is_a?(Output::Multiplexer)
-              file_output = output.instance_variable_get(:@writers).find { |w| w.is_a?(Output::File) }
-              file_output.write_metadata(session.metadata) if file_output
+        # Handle retry logic
+        max_attempts = options[:retry_on_error] ? 3 : 1  # 3 total attempts = 1 initial + 2 retries
+        session = nil
+        
+        max_attempts.times do |attempt|
+          begin
+            # On retry, add --resume with the session ID from the failed attempt
+            if attempt > 0 && session&.session_id
+              # Remove any existing --resume flag and add the new one
+              claude_opts = options[:claude_options].reject { |opt| opt == "--resume" || opt.start_with?("--resume=") }
+              
+              # Also remove the argument after --resume if it was separate
+              i = 0
+              while i < claude_opts.length
+                if claude_opts[i] == "--resume"
+                  claude_opts.delete_at(i) # Remove --resume
+                  claude_opts.delete_at(i) if i < claude_opts.length # Remove the session ID after it
+                else
+                  i += 1
+                end
+              end
+              
+              # Add the new resume flag with the session ID from the failed attempt
+              claude_opts = ["--resume", session.session_id] + claude_opts
+              
+              # Create a new client with updated options
+              client = Client.new(
+                directory: options[:directory] || Dir.pwd,
+                output: output,
+                claude_options: claude_opts
+              )
+              
+              output.write_info("Retrying with session ID: #{session.session_id}")
+              output.write_divider
             end
             
-            exit(0)
-          else
-            exit(1)
+            session = client.run(prompt)
+            
+            # If successful, break out of retry loop
+            if session.success?
+              break
+            elsif !options[:retry_on_error] || attempt == max_attempts - 1
+              # No retry or last attempt failed
+              $stderr.puts "Error: Session failed"
+              exit(1)
+            end
+            # Otherwise continue to retry
+            
+          rescue => e
+            if options[:retry_on_error] && attempt < max_attempts - 1
+              $stderr.puts "Error on attempt #{attempt + 1}: #{e.message}"
+              # Continue to retry
+            else
+              $stderr.puts "Error: #{e.message}"
+              exit(1)
+            end
+          end
+        end
+        
+        # Print result to stdout
+        if session&.result
+          puts session.result.content unless session.result.content.empty?
+          
+          # Write metadata to log file if specified
+          if options[:log_file] && output.is_a?(Output::Multiplexer)
+            file_output = output.instance_variable_get(:@writers).find { |w| w.is_a?(Output::File) }
+            file_output.write_metadata(session.metadata) if file_output
           end
           
-        rescue => e
-          $stderr.puts "Error: #{e.message}"
+          exit(0)
+        else
           exit(1)
-        ensure
-          output.close rescue nil
         end
+        
+      ensure
+        output.close rescue nil
       end
 
       private
@@ -150,7 +202,7 @@ module AutoClaude
             -h, --help              Show this help message
             -d, --directory DIR     Run claude in specified directory
             -l, --log FILE          Save output to log file
-            -r, --retry             Retry on error with --resume
+            -r, --retry             Retry twice on error with --resume (3 total attempts)
             --                      Pass remaining args to claude
 
           EXAMPLES:
