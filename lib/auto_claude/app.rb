@@ -149,9 +149,9 @@ module AutoClaude
 
           # Check if it's a non-option argument (doesn't start with -)
           # But skip this check if the previous argument was an option that takes a value
-          if !opt.start_with?("-")
+          unless opt.start_with?("-")
             # Check if this is a value for the previous option
-            if i > 0 && options[i-1].start_with?("-")
+            if i > 0 && options[i - 1].start_with?("-")
               # This is likely a value for the previous option, which is fine
             else
               return "Cannot pass non-option arguments to claude (found: '#{opt}'). Only flags starting with '-' are allowed."
@@ -165,7 +165,7 @@ module AutoClaude
       end
 
       # Programmatic entrypoint for Ruby applications
-      # 
+      #
       # @param prompt [String] The prompt to send to Claude
       # @param directory [String, nil] Working directory for Claude command
       # @param log_file [String, nil] Path to log file for all messages
@@ -178,7 +178,7 @@ module AutoClaude
       #   - message: the stderr message string
       #   - type: :message or :stat
       #   - color: the color symbol (:cyan, :blue, :red, etc.)
-      # 
+      #
       # @return [String] The result from Claude
       # @raise [RuntimeError] If Claude command fails
       #
@@ -202,8 +202,8 @@ module AutoClaude
       # @example With streaming stderr callback
       #   AutoClaude::App.run(
       #     "Generate some code",
-      #     stderr_callback: -> (msg, type, color) { 
-      #       puts "[#{type}] #{msg}" 
+      #     stderr_callback: -> (msg, type, color) {
+      #       puts "[#{type}] #{msg}"
       #     }
       #   )
       def run(prompt, directory: nil, log_file: nil, retry_on_error: false, claude_options: [], output: $stdout, error: $stderr, stderr_callback: nil)
@@ -219,7 +219,7 @@ module AutoClaude
         original_stdout = $stdout
         original_stderr = $stderr
         original_stderr_callback = ColorPrinter.stderr_callback
-        
+
         begin
           $stdout = output
           $stderr = error
@@ -231,7 +231,7 @@ module AutoClaude
           app.instance_variable_set(:@directory, directory)
           app.instance_variable_set(:@log_file, log_file)
           app.instance_variable_set(:@retry_on_error, retry_on_error)
-          
+
           # Capture the result instead of printing it
           result = nil
           app.define_singleton_method(:process) do |input|
@@ -275,7 +275,7 @@ module AutoClaude
               end
             end
           end
-          
+
           # Run the process and return the result
           app.process(prompt)
         ensure
