@@ -21,6 +21,9 @@ module AutoClaude
             parse_assistant_message(json)
           when "user"
             parse_user_message(json)
+          when "tool_use"
+            # Direct tool_use message (not nested in assistant message)
+            ToolUseMessage.new(json)
           when "result"
             ResultMessage.new(json)
           when "system"
@@ -97,21 +100,32 @@ module AutoClaude
       end
 
       class ToolUseMessage < Base
-        attr_reader :tool_name, :tool_input
+        attr_reader :tool_name, :tool_input, :tool_id
 
         protected
 
         def parse_json(json)
-          content = json.dig("message", "content")
-          
-          if content.is_a?(Array)
-            tool_content = content.find { |c| c["type"] == "tool_use" }
-            if tool_content
-              @tool_name = tool_content["name"]
-              @tool_input = tool_content["input"] || {}
+          # Handle both nested and direct tool_use messages
+          if json["type"] == "tool_use"
+            # Direct tool_use message (from unhandled messages)
+            @tool_id = json["id"]
+            @tool_name = json["name"]
+            @tool_input = json["input"] || {}
+          else
+            # Nested in assistant message content
+            content = json.dig("message", "content")
+            
+            if content.is_a?(Array)
+              tool_content = content.find { |c| c["type"] == "tool_use" }
+              if tool_content
+                @tool_id = tool_content["id"]
+                @tool_name = tool_content["name"]
+                @tool_input = tool_content["input"] || {}
+              end
             end
           end
           
+          @tool_id ||= ""
           @tool_name ||= "Unknown"
           @tool_input ||= {}
         end

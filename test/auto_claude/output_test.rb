@@ -105,7 +105,7 @@ class AutoClaude::OutputTest < Minitest::Test
     assert_match(/Line 1/, formatted)
     assert_match(/Line 3/, formatted)
     refute_match(/Line 4/, formatted)
-    assert_match(/\+ 2 lines not shown/, formatted)
+    assert_match(/\+ 2 more lines/, formatted)
   end
 
   def test_formatter_tool_use
@@ -113,11 +113,11 @@ class AutoClaude::OutputTest < Minitest::Test
     
     bash_msg = create_tool_use_message("Bash", {"command" => "pwd"})
     formatted = formatter.format_message(bash_msg)
-    assert_equal '  Bash("pwd")', formatted
+    assert_equal '🖥️  Running: pwd', formatted
     
     read_msg = create_tool_use_message("Read", {"file_path" => "/tmp/test.txt"})
     formatted = formatter.format_message(read_msg)
-    assert_equal '  Read("/tmp/test.txt")', formatted
+    assert_equal '👀 Reading /tmp/test.txt', formatted
   end
 
   def test_formatter_todo_write_not_truncated
@@ -128,9 +128,11 @@ class AutoClaude::OutputTest < Minitest::Test
     
     formatted = formatter.format_message(todo_msg)
     
-    # Should show all 10 tasks despite truncation setting
+    # The new formatter shows a summary and up to 3 tasks
+    assert_match(/📝 Todo: 10 tasks/, formatted)
     assert_match(/Task 1/, formatted)
-    assert_match(/Task 10/, formatted)
+    # Task 10 won't be shown as it only shows first 3 pending tasks
+    refute_match(/Task 10/, formatted)
     refute_match(/not shown/, formatted)
   end
 
