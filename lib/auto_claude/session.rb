@@ -1,13 +1,11 @@
-require 'securerandom'
 require_relative 'process/manager'
 require_relative 'messages/base'
 
 module AutoClaude
     class Session
-      attr_reader :id, :messages, :result, :metadata, :error
+      attr_reader :messages, :result, :metadata, :error
 
       def initialize(directory:, output:, claude_options: [])
-        @id = SecureRandom.hex(8)
         @directory = directory
         @output = output
         @claude_options = claude_options
@@ -22,7 +20,6 @@ module AutoClaude
 
       def execute(prompt)
         @start_time = Time.now
-        @output.write_info("Session ID: #{@id}")
         @output.write_info("Working directory: #{@directory}")
         @output.write_divider
         
@@ -77,6 +74,10 @@ module AutoClaude
         }
       end
 
+      def session_id
+        @metadata["session_id"]
+      end
+
       private
 
       def handle_message(message)
@@ -126,7 +127,9 @@ module AutoClaude
           @output.write_stat("Tokens", "#{usage[:input]} up, #{usage[:output]} down")
         end
         
-        @output.write_stat("Session ID", @id)
+        if @metadata["session_id"]
+          @output.write_stat("Session ID", @metadata["session_id"])
+        end
       end
   end
 end

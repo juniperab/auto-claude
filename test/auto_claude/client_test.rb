@@ -85,7 +85,6 @@ class AutoClaude::ClientTest < Minitest::Test
       sessions = threads.map(&:value)
       
       assert_equal 5, sessions.count
-      assert_equal 5, sessions.map(&:id).uniq.count # All unique IDs
       assert_equal 5, client.sessions.count
     end
   end

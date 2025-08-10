@@ -23,7 +23,8 @@ class AutoClaude::IntegrationTest < Minitest::Test
       
       # Check output captured messages
       assert_equal 1, output.messages.count
-      assert output.stats["Session ID"]  # Session ID is generated, not from mock
+      assert_equal "test123", output.stats["Session ID"]  # Should show Claude's session ID
+      assert_equal "test123", session.session_id  # Should be accessible via method
       assert output.stats["Success"]
     end
   end
@@ -74,7 +75,6 @@ class AutoClaude::IntegrationTest < Minitest::Test
       sessions = threads.map(&:value)
       
       assert_equal 3, sessions.count
-      assert_equal 3, sessions.map(&:id).uniq.count
       sessions.each_with_index do |session, i|
         assert session.success?
         assert_match(/Result \d/, session.result.content)
