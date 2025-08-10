@@ -2,7 +2,6 @@ require 'tempfile'
 require 'shellwords'
 
 module AutoClaude
-  module V2
     module Process
       class Wrapper
         def initialize(directory)
@@ -82,6 +81,5 @@ module AutoClaude
           script
         end
       end
-    end
   end
 end

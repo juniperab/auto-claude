@@ -3,7 +3,6 @@ require_relative 'process/manager'
 require_relative 'messages/base'
 
 module AutoClaude
-  module V2
     class Session
       attr_reader :id, :messages, :result, :metadata, :error
 
@@ -129,6 +128,5 @@ module AutoClaude
         
         @output.write_stat("Session ID", @id)
       end
-    end
   end
 end

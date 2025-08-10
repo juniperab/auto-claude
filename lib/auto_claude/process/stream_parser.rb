@@ -2,7 +2,6 @@ require 'json'
 require_relative '../messages/base'
 
 module AutoClaude
-  module V2
     module Process
       class StreamParser
         def initialize(handler)
@@ -34,6 +33,5 @@ module AutoClaude
           end
         end
       end
-    end
   end
 end

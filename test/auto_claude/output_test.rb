@@ -1,14 +1,14 @@
 require "test_helper"
-require "auto_claude/v2/output/memory"
-require "auto_claude/v2/output/terminal"
-require "auto_claude/v2/output/file"
-require "auto_claude/v2/output/formatter"
-require "auto_claude/v2/messages/base"
+require "auto_claude/output/memory"
+require "auto_claude/output/terminal"
+require "auto_claude/output/file"
+require "auto_claude/output/formatter"
+require "auto_claude/messages/base"
 require "tempfile"
 
-class AutoClaude::V2::OutputTest < Minitest::Test
+class AutoClaude::OutputTest < Minitest::Test
   def test_memory_output_stores_messages
-    output = AutoClaude::V2::Output::Memory.new
+    output = AutoClaude::Output::Memory.new
     
     message = create_text_message("Hello")
     output.write_message(message)
@@ -26,7 +26,7 @@ class AutoClaude::V2::OutputTest < Minitest::Test
   end
 
   def test_memory_output_clear
-    output = AutoClaude::V2::Output::Memory.new
+    output = AutoClaude::Output::Memory.new
     
     output.write_message(create_text_message("Hello"))
     output.write_stat("Test", "Value")
@@ -38,7 +38,7 @@ class AutoClaude::V2::OutputTest < Minitest::Test
 
   def test_terminal_output_writes_to_stream
     stream = StringIO.new
-    output = AutoClaude::V2::Output::Terminal.new(stream: stream, color: false)
+    output = AutoClaude::Output::Terminal.new(stream: stream, color: false)
     
     output.write_message(create_text_message("Hello world"))
     output.write_divider
@@ -50,7 +50,7 @@ class AutoClaude::V2::OutputTest < Minitest::Test
 
   def test_terminal_output_with_colors
     stream = StringIO.new
-    output = AutoClaude::V2::Output::Terminal.new(stream: stream, color: true)
+    output = AutoClaude::Output::Terminal.new(stream: stream, color: true)
     
     output.write_error("Error message")
     
@@ -62,7 +62,7 @@ class AutoClaude::V2::OutputTest < Minitest::Test
 
   def test_file_output_writes_to_file
     Tempfile.create("test_output") do |tmpfile|
-      output = AutoClaude::V2::Output::File.new(tmpfile.path)
+      output = AutoClaude::Output::File.new(tmpfile.path)
       
       output.write_message(create_text_message("File test"))
       output.write_stat("Session", "123")
@@ -76,15 +76,15 @@ class AutoClaude::V2::OutputTest < Minitest::Test
 
   def test_file_output_invalid_path
     assert_raises(ArgumentError) do
-      AutoClaude::V2::Output::File.new("/invalid/path/file.log")
+      AutoClaude::Output::File.new("/invalid/path/file.log")
     end
   end
 
   def test_multiplexer_output
-    memory1 = AutoClaude::V2::Output::Memory.new
-    memory2 = AutoClaude::V2::Output::Memory.new
+    memory1 = AutoClaude::Output::Memory.new
+    memory2 = AutoClaude::Output::Memory.new
     
-    multiplexer = AutoClaude::V2::Output::Multiplexer.new([memory1, memory2])
+    multiplexer = AutoClaude::Output::Multiplexer.new([memory1, memory2])
     
     message = create_text_message("Multi test")
     multiplexer.write_message(message)
@@ -97,7 +97,7 @@ class AutoClaude::V2::OutputTest < Minitest::Test
   end
 
   def test_formatter_text_truncation
-    formatter = AutoClaude::V2::Output::Formatter.new(truncate: true, max_lines: 3)
+    formatter = AutoClaude::Output::Formatter.new(truncate: true, max_lines: 3)
     
     message = create_text_message("Line 1\nLine 2\nLine 3\nLine 4\nLine 5")
     formatted = formatter.format_message(message)
@@ -109,7 +109,7 @@ class AutoClaude::V2::OutputTest < Minitest::Test
   end
 
   def test_formatter_tool_use
-    formatter = AutoClaude::V2::Output::Formatter.new
+    formatter = AutoClaude::Output::Formatter.new
     
     bash_msg = create_tool_use_message("Bash", {"command" => "pwd"})
     formatted = formatter.format_message(bash_msg)
@@ -121,7 +121,7 @@ class AutoClaude::V2::OutputTest < Minitest::Test
   end
 
   def test_formatter_todo_write_not_truncated
-    formatter = AutoClaude::V2::Output::Formatter.new(truncate: true, max_lines: 2)
+    formatter = AutoClaude::Output::Formatter.new(truncate: true, max_lines: 2)
     
     todos = (1..10).map { |i| {"content" => "Task #{i}", "status" => "pending"} }
     todo_msg = create_tool_use_message("TodoWrite", {"todos" => todos})
@@ -143,7 +143,7 @@ class AutoClaude::V2::OutputTest < Minitest::Test
         "content" => [{"type" => "text", "text" => text}]
       }
     }
-    AutoClaude::V2::Messages::Base.from_json(json)
+    AutoClaude::Messages::Base.from_json(json)
   end
 
   def create_tool_use_message(tool_name, input)
@@ -155,6 +155,6 @@ class AutoClaude::V2::OutputTest < Minitest::Test
         ]
       }
     }
-    AutoClaude::V2::Messages::Base.from_json(json)
+    AutoClaude::Messages::Base.from_json(json)
   end
 end

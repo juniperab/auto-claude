@@ -37,10 +37,10 @@ class AutoClaude::EnvironmentDiagnosticTest < Minitest::Test
         # Save original PWD
         original_pwd = ENV['PWD']
         
-        runner = AutoClaude::ClaudeRunner.new(directory: tmpdir)
+        client = AutoClaude::Client.new(directory: tmpdir)
         
         begin
-          runner.run("Test")
+          client.run("Test")
         rescue
           # Expected to fail
         end

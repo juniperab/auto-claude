@@ -1,5 +1,4 @@
 module AutoClaude
-  module V2
     module Output
       class Writer
         def write_message(message)
@@ -64,6 +63,5 @@ module AutoClaude
           @writers.each { |w| w.close rescue nil }
         end
       end
-    end
   end
 end

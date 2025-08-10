@@ -1,5 +1,4 @@
 module AutoClaude
-  module V2
     module Output
       class Formatter
         def initialize(color: true, truncate: true, max_lines: 5)
@@ -103,6 +102,5 @@ module AutoClaude
           end
         end
       end
-    end
   end
 end

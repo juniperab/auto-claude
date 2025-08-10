@@ -4,7 +4,6 @@ require_relative 'output/file'
 require_relative 'output/writer'
 
 module AutoClaude
-  module V2
     class CLI
       def self.run(args = ARGV)
         options = parse_arguments(args)
@@ -170,6 +169,5 @@ module AutoClaude
         puts "Usage: auto-claude [OPTIONS] [PROMPT]"
         puts "Try 'auto-claude --help' for more information."
       end
-    end
   end
 end

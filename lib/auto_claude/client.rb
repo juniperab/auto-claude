@@ -3,8 +3,7 @@ require_relative 'session'
 require_relative 'output/terminal'
 
 module AutoClaude
-  module V2
-    class Client
+  class Client
       attr_reader :sessions
 
       def initialize(directory: Dir.pwd, output: nil, claude_options: [])
@@ -44,6 +43,5 @@ module AutoClaude
           raise ArgumentError, "Directory does not exist: #{@directory}"
         end
       end
-    end
   end
 end

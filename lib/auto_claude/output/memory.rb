@@ -1,7 +1,6 @@
 require_relative 'writer'
 
 module AutoClaude
-  module V2
     module Output
       class Memory < Writer
         attr_reader :messages, :stats, :errors, :info, :user_messages
@@ -58,6 +57,5 @@ module AutoClaude
           output.join("\n")
         end
       end
-    end
   end
 end

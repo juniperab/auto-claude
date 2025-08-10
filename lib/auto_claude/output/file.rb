@@ -3,7 +3,6 @@ require_relative 'formatter'
 require 'json'
 
 module AutoClaude
-  module V2
     module Output
       class File < Writer
         def initialize(filename, append: false)
@@ -49,6 +48,5 @@ module AutoClaude
           @file.close unless @file.closed?
         end
       end
-    end
   end
 end

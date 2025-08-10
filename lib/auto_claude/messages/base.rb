@@ -2,7 +2,6 @@ require 'json'
 require 'time'
 
 module AutoClaude
-  module V2
     module Messages
       class Base
         attr_reader :type, :timestamp, :raw_json
@@ -193,6 +192,5 @@ module AutoClaude
           # Keep raw json accessible
         end
       end
-    end
   end
 end

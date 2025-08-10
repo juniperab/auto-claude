@@ -1,7 +1,7 @@
 require "test_helper"
-require "auto_claude/v2/messages/base"
+require "auto_claude/messages/base"
 
-class AutoClaude::V2::MessageTest < Minitest::Test
+class AutoClaude::MessageTest < Minitest::Test
   def test_parse_text_message
     json = {
       "type" => "assistant",
@@ -12,9 +12,9 @@ class AutoClaude::V2::MessageTest < Minitest::Test
       }
     }
     
-    message = AutoClaude::V2::Messages::Base.from_json(json)
+    message = AutoClaude::Messages::Base.from_json(json)
     
-    assert_kind_of AutoClaude::V2::Messages::TextMessage, message
+    assert_kind_of AutoClaude::Messages::TextMessage, message
     assert_equal "Hello world", message.text
     assert_equal "assistant", message.role
   end
@@ -33,9 +33,9 @@ class AutoClaude::V2::MessageTest < Minitest::Test
       }
     }
     
-    message = AutoClaude::V2::Messages::Base.from_json(json)
+    message = AutoClaude::Messages::Base.from_json(json)
     
-    assert_kind_of AutoClaude::V2::Messages::ToolUseMessage, message
+    assert_kind_of AutoClaude::Messages::ToolUseMessage, message
     assert_equal "Bash", message.tool_name
     assert_equal({"command" => "ls -la"}, message.tool_input)
   end
@@ -55,9 +55,9 @@ class AutoClaude::V2::MessageTest < Minitest::Test
       }
     }
     
-    message = AutoClaude::V2::Messages::Base.from_json(json)
+    message = AutoClaude::Messages::Base.from_json(json)
     
-    assert_kind_of AutoClaude::V2::Messages::ToolResultMessage, message
+    assert_kind_of AutoClaude::Messages::ToolResultMessage, message
     assert_equal "bash_123", message.tool_name
     assert_equal "file1.txt\nfile2.txt", message.output
     assert_equal false, message.is_error
@@ -79,9 +79,9 @@ class AutoClaude::V2::MessageTest < Minitest::Test
       "session_id" => "abc123"
     }
     
-    message = AutoClaude::V2::Messages::Base.from_json(json)
+    message = AutoClaude::Messages::Base.from_json(json)
     
-    assert_kind_of AutoClaude::V2::Messages::ResultMessage, message
+    assert_kind_of AutoClaude::Messages::ResultMessage, message
     assert_equal "Task completed", message.content
     assert message.success?
     refute message.error?
@@ -100,9 +100,9 @@ class AutoClaude::V2::MessageTest < Minitest::Test
       }
     }
     
-    message = AutoClaude::V2::Messages::Base.from_json(json)
+    message = AutoClaude::Messages::Base.from_json(json)
     
-    assert_kind_of AutoClaude::V2::Messages::ResultMessage, message
+    assert_kind_of AutoClaude::Messages::ResultMessage, message
     assert_equal "Rate limit exceeded", message.content
     refute message.success?
     assert message.error?
@@ -115,9 +115,9 @@ class AutoClaude::V2::MessageTest < Minitest::Test
       "message" => "System information"
     }
     
-    message = AutoClaude::V2::Messages::Base.from_json(json)
+    message = AutoClaude::Messages::Base.from_json(json)
     
-    assert_kind_of AutoClaude::V2::Messages::SystemMessage, message
+    assert_kind_of AutoClaude::Messages::SystemMessage, message
     assert_equal "System information", message.message
   end
 
@@ -127,9 +127,9 @@ class AutoClaude::V2::MessageTest < Minitest::Test
       "data" => "something"
     }
     
-    message = AutoClaude::V2::Messages::Base.from_json(json)
+    message = AutoClaude::Messages::Base.from_json(json)
     
-    assert_kind_of AutoClaude::V2::Messages::UnknownMessage, message
+    assert_kind_of AutoClaude::Messages::UnknownMessage, message
     assert_equal "unknown_type", message.type
     assert_equal json, message.raw_json
   end
@@ -138,7 +138,7 @@ class AutoClaude::V2::MessageTest < Minitest::Test
     json = {"type" => "system", "message" => "test"}
     
     time_before = Time.now
-    message = AutoClaude::V2::Messages::Base.from_json(json)
+    message = AutoClaude::Messages::Base.from_json(json)
     time_after = Time.now
     
     assert message.timestamp >= time_before
@@ -153,17 +153,17 @@ class AutoClaude::V2::MessageTest < Minitest::Test
       }
     }
     
-    message = AutoClaude::V2::Messages::Base.from_json(json)
+    message = AutoClaude::Messages::Base.from_json(json)
     assert_equal json, message.to_h
   end
 
   def test_handle_nil_input
-    assert_nil AutoClaude::V2::Messages::Base.from_json(nil)
+    assert_nil AutoClaude::Messages::Base.from_json(nil)
   end
 
   def test_handle_non_hash_input
-    assert_nil AutoClaude::V2::Messages::Base.from_json("string")
-    assert_nil AutoClaude::V2::Messages::Base.from_json([])
-    assert_nil AutoClaude::V2::Messages::Base.from_json(123)
+    assert_nil AutoClaude::Messages::Base.from_json("string")
+    assert_nil AutoClaude::Messages::Base.from_json([])
+    assert_nil AutoClaude::Messages::Base.from_json(123)
   end
 end

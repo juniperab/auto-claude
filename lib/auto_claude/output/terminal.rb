@@ -2,7 +2,6 @@ require_relative 'writer'
 require_relative 'formatter'
 
 module AutoClaude
-  module V2
     module Output
       class Terminal < Writer
         COLORS = {
@@ -63,6 +62,5 @@ module AutoClaude
           end
         end
       end
-    end
   end
 end

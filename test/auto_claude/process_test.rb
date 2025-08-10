@@ -1,13 +1,13 @@
 require "test_helper"
-require "auto_claude/v2/process/manager"
-require "auto_claude/v2/process/wrapper"
-require "auto_claude/v2/process/stream_parser"
-require "auto_claude/v2/messages/base"
+require "auto_claude/process/manager"
+require "auto_claude/process/wrapper"
+require "auto_claude/process/stream_parser"
+require "auto_claude/messages/base"
 
-class AutoClaude::V2::ProcessTest < Minitest::Test
+class AutoClaude::ProcessTest < Minitest::Test
   def test_wrapper_creates_executable_script
     Dir.mktmpdir do |tmpdir|
-      wrapper = AutoClaude::V2::Process::Wrapper.new(tmpdir)
+      wrapper = AutoClaude::Process::Wrapper.new(tmpdir)
       
       command = ["claude", "-p", "--verbose"]
       script_path = wrapper.create_script(command)
@@ -25,7 +25,7 @@ class AutoClaude::V2::ProcessTest < Minitest::Test
   end
 
   def test_wrapper_determines_shell
-    wrapper = AutoClaude::V2::Process::Wrapper.new(Dir.pwd)
+    wrapper = AutoClaude::Process::Wrapper.new(Dir.pwd)
     
     ENV.stub :[], -> (key) {
       return '/bin/zsh' if key == 'SHELL'
@@ -44,7 +44,7 @@ class AutoClaude::V2::ProcessTest < Minitest::Test
     messages_received = []
     handler = -> (msg) { messages_received << msg }
     
-    parser = AutoClaude::V2::Process::StreamParser.new(handler)
+    parser = AutoClaude::Process::StreamParser.new(handler)
     
     stream = StringIO.new(<<~JSON)
       {"type": "assistant", "message": {"content": [{"type": "text", "text": "Hello"}]}}
@@ -57,13 +57,13 @@ class AutoClaude::V2::ProcessTest < Minitest::Test
     
     # Should have 2 messages (system filtered, invalid json ignored)
     assert_equal 2, messages_received.count
-    assert_kind_of AutoClaude::V2::Messages::TextMessage, messages_received[0]
-    assert_kind_of AutoClaude::V2::Messages::ResultMessage, messages_received[1]
+    assert_kind_of AutoClaude::Messages::TextMessage, messages_received[0]
+    assert_kind_of AutoClaude::Messages::ResultMessage, messages_received[1]
   end
 
   def test_manager_validates_directory
     assert_raises(ArgumentError) do
-      AutoClaude::V2::Process::Manager.new(
+      AutoClaude::Process::Manager.new(
         directory: "/nonexistent/path",
         claude_options: []
       )
@@ -72,14 +72,14 @@ class AutoClaude::V2::ProcessTest < Minitest::Test
 
   def test_manager_validates_claude_options
     assert_raises(ArgumentError) do
-      AutoClaude::V2::Process::Manager.new(
+      AutoClaude::Process::Manager.new(
         directory: Dir.pwd,
         claude_options: ["--verbose"] # Forbidden option
       )
     end
     
     assert_raises(ArgumentError) do
-      AutoClaude::V2::Process::Manager.new(
+      AutoClaude::Process::Manager.new(
         directory: Dir.pwd,
         claude_options: ["--output-format", "json"]
       )
@@ -87,7 +87,7 @@ class AutoClaude::V2::ProcessTest < Minitest::Test
   end
 
   def test_manager_builds_correct_command
-    manager = AutoClaude::V2::Process::Manager.new(
+    manager = AutoClaude::Process::Manager.new(
       directory: Dir.pwd,
       claude_options: ["--model", "opus"]
     )
@@ -100,7 +100,7 @@ class AutoClaude::V2::ProcessTest < Minitest::Test
   def test_manager_execute_with_mock_process
     messages_received = []
     
-    manager = AutoClaude::V2::Process::Manager.new(
+    manager = AutoClaude::Process::Manager.new(
       directory: Dir.pwd,
       claude_options: []
     )
@@ -122,7 +122,7 @@ class AutoClaude::V2::ProcessTest < Minitest::Test
   end
 
   def test_manager_execute_handles_process_failure
-    manager = AutoClaude::V2::Process::Manager.new(
+    manager = AutoClaude::Process::Manager.new(
       directory: Dir.pwd,
       claude_options: []
     )

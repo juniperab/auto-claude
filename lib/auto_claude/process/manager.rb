@@ -3,7 +3,6 @@ require_relative 'wrapper'
 require_relative 'stream_parser'
 
 module AutoClaude
-  module V2
     module Process
       class Manager
         def initialize(directory:, claude_options: [])
@@ -70,6 +69,5 @@ module AutoClaude
           command
         end
       end
-    end
   end
 end
