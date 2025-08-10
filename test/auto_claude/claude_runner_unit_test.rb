@@ -1,5 +1,6 @@
 require "test_helper"
 require "json"
+require "tempfile"
 
 class AutoClaude::ClaudeRunnerUnitTest < Minitest::Test
   def setup
@@ -447,5 +448,291 @@ class AutoClaude::ClaudeRunnerUnitTest < Minitest::Test
     
     output = @stderr_output.string
     assert_match(/Success: false/, output)
+  end
+
+  # Business logic tests with real components
+
+  def test_full_message_processing_pipeline
+    Dir.mktmpdir do |tmpdir|
+      runner = AutoClaude::ClaudeRunner.new(directory: tmpdir)
+      
+      # Simulate Claude's actual JSON output format
+      claude_output = [
+        '{"type": "assistant", "message": {"content": [{"type": "text", "text": "I\'ll help you with that."}]}}',
+        '{"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash", "input": {"command": "ls"}}]}}',
+        '{"type": "user", "message": {"content": [{"type": "tool_result", "content": "file1.txt file2.txt"}]}}',
+        '{"type": "assistant", "message": {"content": [{"type": "text", "text": "I found 2 files."}]}}',
+        '{"type": "result", "subtype": "success", "result": "Found 2 files", "success": true, "num_turns": 2, "duration_ms": 1000, "total_cost_usd": 0.001, "usage": {"input_tokens": 50, "output_tokens": 25}, "session_id": "test123"}'
+      ].join("\n") + "\n"
+      
+      # Only mock the actual process call, everything else is real
+      Open3.stub :popen3, -> (script_path, &block) {
+        # Verify the wrapper script was created and contains correct directory
+        assert File.exist?(script_path), "Wrapper script should exist"
+        script_content = File.read(script_path)
+        assert_match(/cd "#{Regexp.escape(tmpdir)}"/, script_content)
+        assert_match(/unset OLDPWD/, script_content)
+        # The command uses single quotes for each argument
+        assert_match(/exec 'claude' '-p' '--verbose' '--output-format' 'stream-json'/, script_content)
+        
+        # Simulate the process interaction
+        stdin = StringIO.new
+        stdout = StringIO.new(claude_output)
+        stderr = StringIO.new
+        wait_thread = create_mock_wait_thread(0, true)
+        
+        block.call(stdin, stdout, stderr, wait_thread)
+      } do
+        result = runner.run("Test prompt")
+        
+        # Verify the result
+        assert_equal "Found 2 files", result
+        
+        # Verify messages were processed and printed correctly
+        output = @stderr_output.string
+        assert_match(/I'll help you with that/, output)
+        assert_match(/Bash\("ls"\)/, output)
+        assert_match(/I found 2 files/, output)
+        
+        # Verify stats were printed
+        assert_match(/Success: true/, output)
+        assert_match(/Turns: 2/, output)
+        assert_match(/Duration: 1.0s/, output)
+        assert_match(/Cost: \$0.001000/, output)
+        assert_match(/Tokens: 50 up, 25 down/, output)
+        assert_match(/Session ID: test123/, output)
+        
+        # Verify metadata was stored correctly
+        metadata = runner.instance_variable_get(:@result_metadata)
+        assert_equal true, metadata["success"]
+        assert_equal "test123", metadata["session_id"]
+        assert_equal 2, metadata["num_turns"]
+      end
+    end
+  end
+
+  def test_error_handling_pipeline_with_real_components
+    runner = AutoClaude::ClaudeRunner.new
+    
+    error_output = [
+      '{"type": "assistant", "message": {"content": [{"type": "text", "text": "Starting..."}]}}',
+      '{"type": "result", "is_error": true, "result": "Rate limit exceeded", "error": {"message": "Too many requests"}}'
+    ].join("\n") + "\n"
+    
+    Open3.stub :popen3, -> (script_path, &block) {
+      stdin = StringIO.new
+      stdout = StringIO.new(error_output)
+      stderr = StringIO.new
+      wait_thread = create_mock_wait_thread(0, true)
+      
+      block.call(stdin, stdout, stderr, wait_thread)
+    } do
+      # Should raise the actual error
+      error = assert_raises(RuntimeError) do
+        runner.run("Test")
+      end
+      
+      assert_match(/Claude error: Rate limit exceeded/, error.message)
+      
+      # Verify error metadata was stored
+      metadata = runner.instance_variable_get(:@result_metadata)
+      assert_equal false, metadata["success"]
+      assert_equal "Rate limit exceeded", metadata["error_message"]
+    end
+  end
+
+  def test_process_failure_handling_with_real_components
+    runner = AutoClaude::ClaudeRunner.new
+    
+    partial_output = '{"type": "assistant", "message": {"content": [{"type": "text", "text": "Starting..."}]}}'
+    
+    Open3.stub :popen3, -> (script_path, &block) {
+      stdin = StringIO.new
+      stdout = StringIO.new(partial_output + "\n")
+      stderr = StringIO.new("Connection reset by peer")
+      wait_thread = create_mock_wait_thread(1, false)
+      
+      block.call(stdin, stdout, stderr, wait_thread)
+    } do
+      error = assert_raises(RuntimeError) do
+        runner.run("Test")
+      end
+      
+      assert_match(/exit code 1/, error.message)
+      assert_match(/Connection reset by peer/, error.message)
+      
+      # Verify partial output was still processed
+      output = @stderr_output.string
+      assert_match(/Starting.../, output)
+    end
+  end
+
+  def test_log_file_with_real_file_io
+    Tempfile.create("test_log") do |tmpfile|
+      runner = AutoClaude::ClaudeRunner.new(log_file: tmpfile.path)
+      
+      claude_output = [
+        '{"type": "assistant", "message": {"content": [{"type": "text", "text": "Response text"}]}}',
+        '{"type": "result", "subtype": "success", "result": "Done", "success": true, "session_id": "log123", "usage": {"input_tokens": 10, "output_tokens": 5}}'
+      ].join("\n") + "\n"
+      
+      Open3.stub :popen3, -> (script_path, &block) {
+        stdin = StringIO.new
+        stdout = StringIO.new(claude_output)
+        stderr = StringIO.new
+        wait_thread = create_mock_wait_thread(0, true)
+        
+        block.call(stdin, stdout, stderr, wait_thread)
+      } do
+        result = runner.run("Test")
+        
+        assert_equal "Done", result
+        
+        # Verify log file contains both messages and metadata
+        log_content = File.read(tmpfile.path)
+        
+        # Messages should be logged without color codes
+        assert_match(/Response text/, log_content)
+        refute_match(/\e\[/, log_content)  # No ANSI codes
+        
+        # JSON metadata should be on last line
+        lines = log_content.lines
+        json_line = lines.last
+        metadata = JSON.parse(json_line)
+        
+        assert_equal true, metadata["success"]
+        assert_equal "log123", metadata["session_id"]
+        assert_equal 10, metadata["input_tokens"]
+        assert_equal 5, metadata["output_tokens"]
+      end
+    end
+  end
+
+  def test_message_formatter_integration_with_real_components
+    # Test that MessageFormatter and ColorPrinter work together correctly
+    messages = {
+      "message" => {
+        "content" => [
+          {"type" => "text", "text" => "First line\nSecond line\nThird line\nFourth line\nFifth line\nSixth line"},
+          {"type" => "tool_use", "name" => "Bash", "input" => {"command" => "pwd"}},
+          {"type" => "tool_use", "name" => "TodoWrite", "input" => {
+            "todos" => (1..10).map { |i| 
+              {"id" => i.to_s, "content" => "Task #{i}", "status" => "pending"}
+            }
+          }}
+        ]
+      }
+    }
+    
+    # Process through real formatter
+    AutoClaude::MessageFormatter.format_and_print_messages(messages)
+    
+    output = @stderr_output.string
+    
+    # Verify text truncation (default 5 lines)
+    assert_match(/First line/, output)
+    assert_match(/Fifth line/, output)
+    assert_match(/\+ 1 line not shown/, output)
+    
+    # Verify tool formatting
+    assert_match(/Bash\("pwd"\)/, output)
+    
+    # Verify TodoWrite is NOT truncated
+    assert_match(/Task 1/, output)
+    assert_match(/Task 10/, output)
+    refute_match(/Task.*not shown/, output)
+  end
+
+  def test_callback_flow_with_real_processing
+    callback_messages = []
+    
+    # Set up the callback
+    AutoClaude::ColorPrinter.stderr_callback = -> (msg, type, color) {
+      callback_messages << {message: msg, type: type, color: color}
+    }
+    
+    claude_output = [
+      '{"type": "assistant", "message": {"content": [{"type": "text", "text": "Processing request"}]}}',
+      '{"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Read", "input": {"file_path": "/tmp/test.txt"}}]}}',
+      '{"type": "result", "subtype": "success", "result": "Completed", "success": true, "duration_ms": 500, "total_cost_usd": 0.0001}'
+    ].join("\n") + "\n"
+    
+    Open3.stub :popen3, -> (script_path, &block) {
+      stdin = StringIO.new
+      stdout = StringIO.new(claude_output)
+      stderr = StringIO.new
+      wait_thread = create_mock_wait_thread(0, true)
+      
+      block.call(stdin, stdout, stderr, wait_thread)
+    } do
+      runner = AutoClaude::ClaudeRunner.new
+      result = runner.run("Test with callbacks")
+      
+      assert_equal "Completed", result
+      
+      # Verify callbacks received all messages
+      assert callback_messages.any? { |m| m[:message].include?("Processing request") && m[:type] == :message }
+      assert callback_messages.any? { |m| m[:message].include?("Read") && m[:type] == :message }
+      assert callback_messages.any? { |m| m[:message].include?("Cost:") && m[:type] == :stat }
+      
+      # Verify colors were passed correctly
+      message_colors = callback_messages.select { |m| m[:type] == :message }.map { |m| m[:color] }
+      assert_includes message_colors, :white
+      
+      stat_colors = callback_messages.select { |m| m[:type] == :stat }.map { |m| m[:color] }
+      assert_includes stat_colors, :dark_gray
+    end
+  ensure
+    AutoClaude::ColorPrinter.stderr_callback = nil
+  end
+
+  def test_directory_isolation_with_real_wrapper_script
+    Dir.mktmpdir do |project_dir|
+      Dir.mktmpdir do |work_dir|
+        runner = AutoClaude::ClaudeRunner.new(directory: work_dir)
+        
+        wrapper_script_content = nil
+        
+        Open3.stub :popen3, -> (script_path, &block) {
+          # Capture the actual wrapper script content
+          wrapper_script_content = File.read(script_path)
+          
+          # Verify script sets up proper isolation
+          assert_match(/cd "#{Regexp.escape(work_dir)}"/, wrapper_script_content)
+          assert_match(/unset OLDPWD/, wrapper_script_content)
+          assert_match(/export PWD="#{Regexp.escape(work_dir)}"/, wrapper_script_content)
+          assert_match(/unset BUNDLE_GEMFILE/, wrapper_script_content)
+          assert_match(/unset RUBYLIB/, wrapper_script_content)
+          
+          stdin = StringIO.new
+          stdout = StringIO.new('{"type": "result", "subtype": "success", "result": "OK"}' + "\n")
+          stderr = StringIO.new
+          wait_thread = create_mock_wait_thread(0, true)
+          
+          block.call(stdin, stdout, stderr, wait_thread)
+        } do
+          # Run from project_dir but set work_dir
+          Dir.chdir(project_dir) do
+            result = runner.run("Test isolation")
+            assert_equal "OK", result
+          end
+          
+          # Verify wrapper script was created and cleaned up
+          refute_nil wrapper_script_content
+        end
+      end
+    end
+  end
+
+  private
+
+  def create_mock_wait_thread(exit_code, success)
+    thread = Minitest::Mock.new
+    status = Process::Status.allocate
+    status.instance_variable_set(:@exitstatus, exit_code)
+    status.define_singleton_method(:success?) { success }
+    status.define_singleton_method(:exitstatus) { @exitstatus }
+    thread.expect :value, status
+    thread
   end
 end
