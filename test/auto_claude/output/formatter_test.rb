@@ -162,7 +162,7 @@ module AutoClaude
         lines = output.split("\n")
         
         assert_match(/📝 Todo: updating task list/, lines[0])
-        assert_match(/✅ Create models/, lines[1]) # Last completed
+        assert_match(/🟢 Create models/, lines[1]) # Last completed
         assert_match(/🔸 Write controllers/, lines[2]) # Current in progress
         assert_match(/🔹 Add tests/, lines[3]) # Next pending
       end
@@ -180,7 +180,7 @@ module AutoClaude
         output = @formatter.format_message(msg)
         lines = output.split("\n")
         
-        assert_match(/📝 Todo: 27 tasks \(10 ✅ \| 2 🔸 \| 15 🔹\)/, lines[0])
+        assert_match(/📝 Todo: 27 tasks \(10 🟢 \| 2 🔸 \| 15 🔹\)/, lines[0])
         assert_equal 4, lines.length # Summary + 3 items
       end
       
@@ -283,8 +283,11 @@ module AutoClaude
         })
         
         output = @formatter.format_message(msg)
+        lines = output.split("\n")
         
-        assert_match(/📋 Result: \[truncated, 1\.0KB output\]/, output)
+        assert_match(/📋 Result: \[1 lines, 1\.0KB\]/, lines[0])
+        assert_match(/^  x+$/, lines[1])
+        assert_equal 2, lines.length # Single line, no ellipsis
       end
       
       def test_format_text_message

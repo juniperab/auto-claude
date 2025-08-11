@@ -24,6 +24,8 @@ module AutoClaude
 
         def write_message(message)
           formatted = @formatter.format_message(message)
+          # Skip filtered messages (nil return from formatter)
+          return if formatted.nil?
           write_output(formatted, :white)
         end
 
@@ -54,11 +56,14 @@ module AutoClaude
         private
 
         def write_output(text, color_name)
+          # Add two-space indent to each line
+          indented_text = text.lines.map { |line| "  #{line}" }.join
+          
           if @color
             color = COLORS[color_name] || COLORS[:white]
-            @stream.puts "#{color}#{text}#{COLORS[:reset]}"
+            @stream.puts "#{color}#{indented_text}#{COLORS[:reset]}"
           else
-            @stream.puts text
+            @stream.puts indented_text
           end
         end
       end

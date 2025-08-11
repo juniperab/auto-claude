@@ -16,36 +16,46 @@ module AutoClaude
 
         def write_message(message)
           formatted = @formatter.format_message(message)
-          @file.puts formatted
+          # Skip filtered messages (nil return from formatter)
+          return if formatted.nil?
+          write_indented(formatted)
         end
 
         def write_user_message(text)
           formatted = @formatter.format_user_prompt(text)
-          @file.puts formatted
+          write_indented(formatted)
         end
 
         def write_stat(key, value)
-          @file.puts "  #{key}: #{value}"
+          write_indented("  #{key}: #{value}")
         end
 
         def write_error(error)
-          @file.puts "  Error: #{error}"
+          write_indented("  Error: #{error}")
         end
 
         def write_info(info)
-          @file.puts "  #{info}"
+          write_indented("  #{info}")
         end
 
         def write_divider
-          @file.puts "---"
+          write_indented("---")
         end
 
         def write_metadata(metadata)
-          @file.puts metadata.to_json
+          write_indented(metadata.to_json)
         end
 
         def close
           @file.close unless @file.closed?
+        end
+        
+        private
+        
+        def write_indented(text)
+          # Add two-space indent to each line
+          indented_text = text.lines.map { |line| "  #{line}" }.join
+          @file.puts indented_text
         end
       end
   end
