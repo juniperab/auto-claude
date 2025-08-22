@@ -25,17 +25,17 @@ module AutoClaude
         
         # File operations (delegated to File formatter)
         ["read", "write", "edit", "multiedit"].each do |op|
-          @formatters[op] = FileFormatterProxy.new(@file_formatter, op)
+          @formatters[op] = FormatterProxy.new(@file_formatter, op)
         end
         
         # Search operations (delegated to Search formatter)
         ["ls", "glob", "grep", "websearch"].each do |op|
-          @formatters[op] = SearchFormatterProxy.new(@search_formatter, op)
+          @formatters[op] = FormatterProxy.new(@search_formatter, op)
         end
         
         # Web operations (delegated to Web formatter)
         ["webfetch"].each do |op|
-          @formatters[op] = WebFormatterProxy.new(@web_formatter, op)
+          @formatters[op] = FormatterProxy.new(@web_formatter, op)
         end
         
         # Task management
@@ -51,30 +51,8 @@ module AutoClaude
         "🔧 #{tool_name}(...)"
       end
       
-      # Proxy classes to delegate to multi-tool formatters
-      class FileFormatterProxy
-        def initialize(formatter, operation)
-          @formatter = formatter
-          @operation = operation
-        end
-        
-        def format(input)
-          @formatter.format(@operation, input)
-        end
-      end
-      
-      class SearchFormatterProxy
-        def initialize(formatter, operation)
-          @formatter = formatter
-          @operation = operation
-        end
-        
-        def format(input)
-          @formatter.format(@operation, input)
-        end
-      end
-      
-      class WebFormatterProxy
+      # Generic proxy class to delegate to multi-tool formatters
+      class FormatterProxy
         def initialize(formatter, operation)
           @formatter = formatter
           @operation = operation
