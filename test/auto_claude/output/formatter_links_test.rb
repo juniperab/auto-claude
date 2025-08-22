@@ -113,23 +113,23 @@ module AutoClaude
       end
       
       def test_extract_domain_various_urls
-        formatter = Formatter.new
+        link_parser = Helpers::LinkParser.new
         
         # Test standard URLs
-        assert_equal "example.com", formatter.send(:extract_domain, "https://example.com/page")
-        assert_equal "example.com", formatter.send(:extract_domain, "http://example.com/page")
-        assert_equal "example.com", formatter.send(:extract_domain, "https://www.example.com/page")
+        assert_equal "example.com", link_parser.send(:extract_domain, "https://example.com/page")
+        assert_equal "example.com", link_parser.send(:extract_domain, "http://example.com/page")
+        assert_equal "example.com", link_parser.send(:extract_domain, "https://www.example.com/page")
         
         # Test subdomains
-        assert_equal "api.example.com", formatter.send(:extract_domain, "https://api.example.com/v1")
+        assert_equal "api.example.com", link_parser.send(:extract_domain, "https://api.example.com/v1")
         
         # Test with ports
-        assert_equal "localhost:3000", formatter.send(:extract_domain, "http://localhost:3000/test")
+        assert_equal "localhost:3000", link_parser.send(:extract_domain, "http://localhost:3000/test")
         
         # Test edge cases
-        assert_equal "unknown", formatter.send(:extract_domain, nil)
-        assert_equal "unknown", formatter.send(:extract_domain, "")
-        assert_equal "unknown", formatter.send(:extract_domain, "not-a-url")
+        assert_equal "unknown", link_parser.send(:extract_domain, nil)
+        assert_equal "unknown", link_parser.send(:extract_domain, "")
+        assert_equal "unknown", link_parser.send(:extract_domain, "not-a-url")
       end
       
       def test_format_links_invalid_json

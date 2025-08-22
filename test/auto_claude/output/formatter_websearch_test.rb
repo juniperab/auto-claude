@@ -55,17 +55,25 @@ module AutoClaude
       end
       
       def test_truncate_text_with_nil
-        truncated = @formatter.send(:truncate_text, nil)
+        truncator = Helpers::TextTruncator.new
+        truncated = truncator.truncate(nil)
         assert_equal "", truncated
       end
       
       def test_truncate_text_with_empty_string
-        truncated = @formatter.send(:truncate_text, "")
+        truncator = Helpers::TextTruncator.new
+        truncated = truncator.truncate("")
         assert_equal "", truncated
       end
       
       def test_format_result_with_preview_nil_input
-        result = @formatter.send(:format_result_with_preview, nil)
+        # Test through the public interface with a nil result
+        msg = Messages::Base.from_json({
+          "type" => "tool_result",
+          "tool_use_id" => "test",
+          "output" => nil
+        })
+        result = @formatter.format_message(msg)
         assert_equal "📋 Result: (empty)", result
       end
       

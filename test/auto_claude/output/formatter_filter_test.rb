@@ -51,7 +51,7 @@ module AutoClaude
         output = @formatter.format_message(msg)
         
         refute_nil output
-        assert_match(/⚠️  Error:/, output)
+        assert_match(/⚠️ Error:/, output)
       end
       
       def test_does_not_filter_partial_matches
@@ -82,9 +82,9 @@ module AutoClaude
       
       def test_can_add_new_filter_prefix
         # Test that new prefixes can be added to the constant
-        assert AutoClaude::Output::Formatter::FILTERED_MESSAGE_PREFIXES.is_a?(Array)
-        assert AutoClaude::Output::Formatter::FILTERED_MESSAGE_PREFIXES.frozen?
-        assert AutoClaude::Output::Formatter::FILTERED_MESSAGE_PREFIXES.include?("Todos have been modified successfully")
+        assert AutoClaude::Output::FormatterConfig::FILTERED_MESSAGE_PREFIXES.is_a?(Array)
+        assert AutoClaude::Output::FormatterConfig::FILTERED_MESSAGE_PREFIXES.frozen?
+        assert AutoClaude::Output::FormatterConfig::FILTERED_MESSAGE_PREFIXES.include?("Todos have been modified successfully")
       end
       
       private

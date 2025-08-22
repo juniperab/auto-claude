@@ -99,17 +99,20 @@ module AutoClaude
       end
       
       def test_extract_grep_context_with_nil_input
-        context = @formatter.send(:extract_grep_context, nil)
+        search_formatter = Formatters::Search.new
+        context = search_formatter.send(:extract_grep_context, nil)
         assert_nil context
       end
       
       def test_extract_mcp_primary_arg_with_nil_input
-        arg = @formatter.send(:extract_mcp_primary_arg, "search", nil)
+        mcp_formatter = Formatters::Mcp.new
+        arg = mcp_formatter.send(:extract_primary_arg, "search", nil)
         assert_equal "", arg
       end
       
       def test_humanize_action_with_nil
-        result = @formatter.send(:humanize_action, nil)
+        mcp_formatter = Formatters::Mcp.new
+        result = mcp_formatter.send(:humanize_action, nil)
         assert_equal "Unknown", result
       end
       

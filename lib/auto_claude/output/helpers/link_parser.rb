@@ -1,0 +1,58 @@
+module AutoClaude
+  module Output
+    module Helpers
+      class LinkParser
+        def initialize(config = FormatterConfig.new)
+          @config = config
+        end
+        
+        def parse_links_line(line)
+          return { lines: ["  #{line.chomp}"], has_more: false } unless line.match(/^Links:\s*\[(.*)\]/)
+          
+          links_json = $1
+          
+          begin
+            return { lines: ["  Links:"], has_more: false } if links_json.strip.empty?
+            
+            require 'json'
+            links = JSON.parse("[#{links_json}]")
+            
+            formatted = ["  Links:"]
+            links.take(5).each do |link|
+              formatted << format_link(link)
+            end
+            
+            { lines: formatted, has_more: links.length > 5 }
+          rescue => e
+            { lines: ["  #{line.chomp}"], has_more: false }
+          end
+        end
+        
+        private
+        
+        def format_link(link)
+          title = link["title"] || "Untitled"
+          url = link["url"] || ""
+          
+          # Truncate title if needed
+          title = title.length > FormatterConfig::MAX_TITLE_LENGTH ? 
+            "#{title[0..(FormatterConfig::MAX_TITLE_LENGTH-4)]}..." : title
+          
+          domain = extract_domain(url)
+          "    • #{title} (#{domain})"
+        end
+        
+        def extract_domain(url)
+          return "unknown" if url.nil? || url.empty?
+          
+          if url.match(%r{^https?://([^/]+)})
+            domain = $1
+            domain.sub(/^www\./, '')
+          else
+            "unknown"
+          end
+        end
+      end
+    end
+  end
+end
