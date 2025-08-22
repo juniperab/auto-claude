@@ -35,8 +35,8 @@ module AutoClaude
           emoji = FormatterConfig::TOOL_EMOJIS[:todowrite]
           
           if total > FormatterConfig::MAX_TODO_DISPLAY
-            "#{emoji} Todo: #{total} tasks (#{stats[:completed].length} 🟢 | " \
-            "#{stats[:in_progress].length} 🔸 | #{stats[:pending].length} 🔹)"
+            completed_count = stats[:completed].length
+            "#{emoji} Todo: #{total} tasks (#{completed_count} completed)"
           else
             "#{emoji} Todo: updating task list"
           end
@@ -82,7 +82,7 @@ module AutoClaude
           items.each do |todo|
             next if todo.nil?
             status = todo["status"] || todo[:status] if todo.is_a?(Hash)
-            icon = FormatterConfig::TODO_STATUS_ICONS[status] || "🔹"
+            icon = FormatterConfig::TODO_STATUS_ICONS[status] || "[ ]"
             content = todo["content"] || todo[:content] || "unknown" if todo.is_a?(Hash)
             content ||= "unknown"
             lines << "  #{icon} #{content}"

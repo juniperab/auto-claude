@@ -23,6 +23,16 @@ module AutoClaude
       end
 
       def format_message(message)
+        # Show raw JSON for debugging when AUTOCLAUDE_SHOW_RAW_MESSAGES is set
+        if ENV['AUTOCLAUDE_SHOW_RAW_MESSAGES']
+          max_length = ENV['AUTOCLAUDE_SHOW_RAW_MESSAGES'].to_i
+          max_length = 160 if max_length <= 0  # Default to 160 if invalid
+          
+          raw = message.raw_json.to_json rescue message.inspect
+          truncated = raw.length > max_length ? "#{raw[0..(max_length-4)]}..." : raw
+          $stderr.puts "[RAW] #{truncated}"
+        end
+        
         case message
         when Messages::TextMessage
           format_text_message(message)
@@ -68,9 +78,13 @@ module AutoClaude
       def format_tool_result(message)
         output = message.output || ""
         
-        # Filter out certain messages
+        # Filter out certain messages unless AUTOCLAUDE_DISABLE_FILTERS is set
         if !message.is_error && should_filter_message?(output)
-          return nil
+          if ENV['AUTOCLAUDE_DISABLE_FILTERS']
+            return "[FILTERED] #{@result_formatter.format(output)}"
+          else
+            return nil
+          end
         end
         
         if message.is_error

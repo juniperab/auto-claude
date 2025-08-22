@@ -55,9 +55,9 @@ module AutoClaude
       
       # Status icons for todos
       TODO_STATUS_ICONS = {
-        "completed" => "🟢",
-        "in_progress" => "🔸",
-        "pending" => "🔹"
+        "completed" => "[x]",
+        "in_progress" => "[-]",
+        "pending" => "[ ]"
       }.freeze
       
       # Message type emojis
@@ -65,7 +65,7 @@ module AutoClaude
         user: "👤",
         assistant: "💭",
         error: "⚠️",
-        result: "📋",
+        result: "  ",
         session_start: "🚀",
         session_complete: "✅",
         stats: "📊"

@@ -50,7 +50,7 @@ module AutoClaude
         def format_with_preview(header, lines)
           formatted = format_preview_lines(lines)
           result = [header] + formatted[:lines]
-          result << "  ..." if formatted[:has_more]
+          result << "    ..." if formatted[:has_more]
           result.join("\n")
         end
         
