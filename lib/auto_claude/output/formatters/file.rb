@@ -47,7 +47,7 @@ module AutoClaude
           edits = extract_value(input, "edits") || []
           edit_count = edits.is_a?(Array) ? edits.length : 0
           
-          "#{FormatterConfig::TOOL_EMOJIS[:multiedit]} Bulk editing #{path}\n  changes: #{edit_count} edits"
+          "#{FormatterConfig::TOOL_EMOJIS[:multiedit]} Bulk editing #{path}\n  changes: #{edit_count} edits}"
         end
       end
     end

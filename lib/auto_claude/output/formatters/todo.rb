@@ -44,36 +44,61 @@ module AutoClaude
         
         def select_display_items(todos, stats)
           items = []
+          target_total = 5
           
-          # Add last completed, current in-progress, next pending
-          items << stats[:completed].last if stats[:completed].any?
-          items << stats[:in_progress].first if stats[:in_progress].any?
-          items << stats[:pending].first if stats[:pending].any?
+          # Ideal distribution: 2 completed, 1 in_progress, 2 pending
+          completed_target = 2
+          in_progress_target = 1
+          pending_target = 2
           
-          # Fill remaining slots
-          fill_remaining_slots(items, todos, stats)
+          # Get available counts
+          completed_available = stats[:completed].length
+          in_progress_available = stats[:in_progress].length
+          pending_available = stats[:pending].length
           
-          items
-        end
-        
-        def fill_remaining_slots(items, todos, stats)
-          while items.length < 3 && items.length < todos.length
-            added = false
+          # Calculate actual amounts to show
+          completed_to_show = [completed_target, completed_available].min
+          in_progress_to_show = [in_progress_target, in_progress_available].min
+          pending_to_show = [pending_target, pending_available].min
+          
+          # If we have fewer than 5 total, try to fill from other categories
+          total_shown = completed_to_show + in_progress_to_show + pending_to_show
+          remaining_slots = target_total - total_shown
+          
+          if remaining_slots > 0
+            # Try to fill from pending first
+            extra_pending = [remaining_slots, pending_available - pending_to_show].min
+            pending_to_show += extra_pending
+            remaining_slots -= extra_pending
             
-            [:pending, :in_progress, :completed].each do |status|
-              status_items = stats[status]
-              next if status_items.empty?
-              
-              candidate = status_items.find { |t| !items.include?(t) }
-              if candidate
-                items << candidate
-                added = true
-                break
-              end
+            # Then from completed
+            if remaining_slots > 0
+              extra_completed = [remaining_slots, completed_available - completed_to_show].min
+              completed_to_show += extra_completed
+              remaining_slots -= extra_completed
             end
             
-            break unless added
+            # Finally from in_progress
+            if remaining_slots > 0
+              extra_in_progress = [remaining_slots, in_progress_available - in_progress_to_show].min
+              in_progress_to_show += extra_in_progress
+            end
           end
+          
+          # Add the items: last N completed, first in_progress, first N pending
+          if completed_to_show > 0
+            items.concat(stats[:completed].last(completed_to_show))
+          end
+          
+          if in_progress_to_show > 0
+            items.concat(stats[:in_progress].first(in_progress_to_show))
+          end
+          
+          if pending_to_show > 0
+            items.concat(stats[:pending].first(pending_to_show))
+          end
+          
+          items
         end
         
         def format_output(summary, items)

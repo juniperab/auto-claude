@@ -17,7 +17,7 @@ module AutoClaude
         
         output = @formatter.format_message(msg)
         
-        assert_match(/✍️  Writing to \/src\/main.rb/, output)
+        assert_match(/✍️ Writing to \/src\/main.rb/, output)
         refute_match(/size:/, output) # Content is small
       end
       
@@ -29,7 +29,7 @@ module AutoClaude
         
         output = @formatter.format_message(msg)
         
-        assert_match(/✍️  Writing to \/src\/large.rb/, output)
+        assert_match(/✍️ Writing to \/src\/large.rb/, output)
         assert_match(/size: 2\.0KB/, output)
       end
       
@@ -86,7 +86,7 @@ module AutoClaude
         
         output = @formatter.format_message(msg)
         
-        assert_match(/🖥️  Running: ls -la/, output)
+        assert_match(/🖥️ Running: ls -la/, output)
       end
       
       def test_format_bash_long_command_with_description
@@ -97,7 +97,7 @@ module AutoClaude
         
         output = @formatter.format_message(msg)
         
-        assert_match(/🖥️  Executing: Find files with TODOs/, output)
+        assert_match(/🖥️ Executing: Find files with TODOs/, output)
         refute_match(/find \. -type/, output) # Long command not shown
       end
       
@@ -218,7 +218,7 @@ module AutoClaude
         
         output = @formatter.format_message(msg)
         
-        assert_match(/✂️  Bulk editing \/src\/controller.rb/, output)
+        assert_match(/✂️ Bulk editing \/src\/controller.rb/, output)
         assert_match(/changes: 3 edits/, output)
       end
       

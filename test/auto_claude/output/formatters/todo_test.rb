@@ -62,7 +62,7 @@ module AutoClaude
           
           # Should show selected items
           lines = result.split("\n")
-          assert lines.length <= 4  # Summary + up to 3 items
+          assert lines.length <= 6  # Summary + up to 5 items
         end
         
         def test_format_handles_nil_todo_items
@@ -128,26 +128,57 @@ module AutoClaude
         end
         
         def test_display_item_selection
-          # Test that it shows last completed, current in-progress, next pending
+          # Test that it shows: 2 completed, 1 in_progress, 2 pending (5 total)
           input = {
             "todos" => [
               { "content" => "Done 1", "status" => "completed" },
               { "content" => "Done 2", "status" => "completed" },
+              { "content" => "Done 3", "status" => "completed" },
               { "content" => "Current", "status" => "in_progress" },
               { "content" => "Pending 1", "status" => "pending" },
-              { "content" => "Pending 2", "status" => "pending" }
+              { "content" => "Pending 2", "status" => "pending" },
+              { "content" => "Pending 3", "status" => "pending" }
             ]
           }
           result = @formatter.format(input)
           
-          # Should show Done 2 (last completed), Current, and Pending 1 (next pending)
+          # Should show last 2 completed (Done 2, Done 3)
           assert_match(/Done 2/, result)
-          assert_match(/Current/, result) 
-          assert_match(/Pending 1/, result)
-          
-          # Should not show Done 1 or Pending 2
+          assert_match(/Done 3/, result)
           refute_match(/Done 1/, result)
-          refute_match(/Pending 2/, result)
+          
+          # Should show the in_progress
+          assert_match(/Current/, result)
+          
+          # Should show first 2 pending
+          assert_match(/Pending 1/, result)
+          assert_match(/Pending 2/, result)
+          refute_match(/Pending 3/, result)
+        end
+        
+        def test_display_item_selection_adaptive
+          # Test that it adapts when fewer items available
+          input = {
+            "todos" => [
+              { "content" => "Done 1", "status" => "completed" },
+              { "content" => "Pending 1", "status" => "pending" },
+              { "content" => "Pending 2", "status" => "pending" },
+              { "content" => "Pending 3", "status" => "pending" },
+              { "content" => "Pending 4", "status" => "pending" }
+            ]
+          }
+          result = @formatter.format(input)
+          
+          # Should show 1 completed (only one available)
+          assert_match(/Done 1/, result)
+          
+          # No in_progress available
+          
+          # Should show 4 pending (to fill up to 5 total)
+          assert_match(/Pending 1/, result)
+          assert_match(/Pending 2/, result)
+          assert_match(/Pending 3/, result)
+          assert_match(/Pending 4/, result)
         end
         
         def test_format_with_nil_input

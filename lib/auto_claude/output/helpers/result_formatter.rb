@@ -50,7 +50,17 @@ module AutoClaude
         def format_with_preview(header, lines)
           formatted = format_preview_lines(lines)
           result = [header] + formatted[:lines]
-          result << "    ..." if formatted[:has_more]
+          
+          # Calculate indent for ellipsis to match the formatted lines
+          if formatted[:has_more] && formatted[:lines].any?
+            # Get the indent of the first formatted line
+            first_line = formatted[:lines].first || ""
+            indent = first_line[/\A */].length
+            result << "#{' ' * indent}..."
+          elsif formatted[:has_more]
+            result << "        ..."  # Default 8 spaces if no lines
+          end
+          
           result.join("\n")
         end
         
@@ -58,28 +68,81 @@ module AutoClaude
           preview_lines = []
           has_more = false
           line_index = 0
+          max_lines = @config.max_lines || FormatterConfig::MAX_PREVIEW_LINES
           
-          while line_index < lines.length
+          # First pass: collect lines to display (up to max_lines)
+          lines_to_display = []
+          while line_index < lines.length && lines_to_display.length < max_lines
             line = lines[line_index]
             
+            # Special handling for Links lines
             if line.to_s.match(/^Links:\s*\[/)
               handle_links_line(line, preview_lines, lines, line_index) do |more|
                 has_more = more
               end
-              break
+              return { lines: preview_lines, has_more: has_more }
             else
-              if preview_lines.length < FormatterConfig::MAX_PREVIEW_LINES
-                preview_lines << "  #{line.to_s.chomp}"
-              else
-                has_more = true
-                break
-              end
+              lines_to_display << line.to_s
             end
             
             line_index += 1
           end
           
+          has_more = line_index < lines.length
+          
+          # Calculate smart indentation
+          padding = calculate_smart_indent(lines_to_display)
+          
+          # Apply indentation to all lines
+          lines_to_display.each do |line|
+            # Convert leading tabs to spaces and apply padding
+            formatted_line = convert_leading_tabs(line)
+            preview_lines << "#{padding}#{formatted_line.chomp}"
+          end
+          
           { lines: preview_lines, has_more: has_more }
+        end
+        
+        private
+        
+        def calculate_smart_indent(lines, target_indent = 8)
+          return " " * target_indent if lines.empty?
+          
+          # Find minimum indent among all lines (ignoring empty lines)
+          min_indent = lines.map do |line|
+            # Convert tabs to spaces for calculation
+            expanded = convert_leading_tabs(line)
+            # Skip empty or whitespace-only lines
+            next nil if expanded.strip.empty?
+            # Count leading spaces
+            expanded.length - expanded.lstrip.length
+          end.compact.min || 0
+          
+          # Calculate padding needed to reach target indent
+          padding_needed = [target_indent - min_indent, 0].max
+          " " * padding_needed
+        end
+        
+        def convert_leading_tabs(line)
+          # Convert leading tabs and spaces-followed-by-tabs to spaces
+          # This handles mixed indentation properly
+          result = ""
+          converted_leading = false
+          
+          line.chars.each do |char|
+            if !converted_leading && (char == "\t" || char == " ")
+              if char == "\t"
+                result += "    "  # Tab = 4 spaces
+              else
+                result += char  # Keep spaces as-is
+              end
+            else
+              converted_leading = true
+              result += char
+            end
+          end
+          
+          result
         end
         
         def handle_links_line(line, preview_lines, all_lines, line_index)
