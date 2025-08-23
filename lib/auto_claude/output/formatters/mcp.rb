@@ -9,8 +9,9 @@ module AutoClaude
           
           emoji = select_emoji(action)
           primary_arg = extract_primary_arg(action, input)
+          indent = " " * FormatterConfig::STANDARD_INDENT
           
-          "#{emoji} #{humanize_action(action)}: #{primary_arg}\n  server: #{server}"
+          "#{emoji} #{humanize_action(action)}: #{primary_arg}\n#{indent}server: #{server}"
         end
         
         private

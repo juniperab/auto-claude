@@ -16,7 +16,7 @@ module AutoClaude
           input = { "query" => "ruby programming" }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "🔍 Search: 'ruby programming'\n  server: vault", result
+          assert_equal "🔍 Search: 'ruby programming'\n        server: vault", result
         end
         
         def test_format_with_unknown_server
@@ -24,7 +24,7 @@ module AutoClaude
           input = {}
           result = @formatter.format(tool_name, input)
           
-          assert_equal "🔧 Action: \n  server: ", result
+          assert_equal "🔧 Action: \n        server: ", result
         end
         
         def test_format_search_operation
@@ -32,7 +32,7 @@ module AutoClaude
           input = { "query" => "shopify" }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "🔍 Search Repos: 'shopify'\n  server: github", result
+          assert_equal "🔍 Search Repos: 'shopify'\n        server: github", result
         end
         
         def test_format_get_operation
@@ -40,7 +40,7 @@ module AutoClaude
           input = { "user_id" => "123" }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "📥 Get User: 123\n  server: vault", result
+          assert_equal "📥 Get User: 123\n        server: vault", result
         end
         
         def test_format_list_operation
@@ -48,7 +48,7 @@ module AutoClaude
           input = { "repo" => "shopify/shopify" }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "📃 List Issues: shopify/shopify\n  server: github", result
+          assert_equal "📃 List Issues: shopify/shopify\n        server: github", result
         end
         
         def test_format_create_operation
@@ -56,7 +56,7 @@ module AutoClaude
           input = { "title" => "New Page" }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "✨ Create Page: New Page\n  server: vault", result
+          assert_equal "✨ Create Page: New Page\n        server: vault", result
         end
         
         def test_format_delete_operation
@@ -64,7 +64,7 @@ module AutoClaude
           input = { "branch" => "feature-x" }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "🗑️ Delete Branch: feature-x\n  server: github", result
+          assert_equal "🗑️ Delete Branch: feature-x\n        server: github", result
         end
         
         def test_format_update_operation
@@ -72,7 +72,7 @@ module AutoClaude
           input = { "post_id" => "456" }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "✏️ Update Post: 456\n  server: vault", result
+          assert_equal "✏️ Update Post: 456\n        server: vault", result
         end
         
         def test_format_send_operation
@@ -80,7 +80,7 @@ module AutoClaude
           input = { "message" => "Hello" }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "📤 Send Message: Hello\n  server: slack", result
+          assert_equal "📤 Send Message: Hello\n        server: slack", result
         end
         
         def test_format_github_issue_reference
@@ -92,7 +92,7 @@ module AutoClaude
           }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "📥 Get Issue: shopify/shopify#123\n  server: github", result
+          assert_equal "📥 Get Issue: shopify/shopify#123\n        server: github", result
         end
         
         def test_format_github_pr_reference
@@ -104,7 +104,7 @@ module AutoClaude
           }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "📥 Get Pr: shopify/shopify#456\n  server: github", result
+          assert_equal "📥 Get Pr: shopify/shopify#456\n        server: github", result
         end
         
         def test_format_github_repo_reference
@@ -115,7 +115,7 @@ module AutoClaude
           }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "📥 Get Repo: shopify/shopify\n  server: github", result
+          assert_equal "📥 Get Repo: shopify/shopify\n        server: github", result
         end
         
         def test_format_empty_input
@@ -123,7 +123,7 @@ module AutoClaude
           input = {}
           result = @formatter.format(tool_name, input)
           
-          assert_equal "📥 Get Something: \n  server: vault", result
+          assert_equal "📥 Get Something: \n        server: vault", result
         end
         
         def test_format_nil_input
@@ -131,7 +131,7 @@ module AutoClaude
           input = nil
           result = @formatter.format(tool_name, input)
           
-          assert_equal "🔍 Search: \n  server: vault", result
+          assert_equal "🔍 Search: \n        server: vault", result
         end
         
         def test_format_single_key_input
@@ -139,7 +139,7 @@ module AutoClaude
           input = { "id" => "789" }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "📥 Fetch: 789\n  server: vault", result
+          assert_equal "📥 Fetch: 789\n        server: vault", result
         end
         
         def test_humanize_action
@@ -175,7 +175,7 @@ module AutoClaude
           input = { query: "test" }
           result = @formatter.format(tool_name, input)
           
-          assert_equal "🔍 Search: 'test'\n  server: vault", result
+          assert_equal "🔍 Search: 'test'\n        server: vault", result
         end
       end
     end

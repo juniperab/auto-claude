@@ -26,7 +26,7 @@ module AutoClaude
           }
           result = @formatter.format("webfetch", input)
           
-          assert_equal "🌍 Fetching example.com\n  analyzing: Extract all the links from this page...", result
+          assert_equal "🌍 Fetching example.com\n        analyzing: Extract all the links from this page...", result
         end
         
         def test_format_webfetch_with_long_prompt
@@ -38,7 +38,7 @@ module AutoClaude
           result = @formatter.format("webfetch", input)
           
           expected_prompt = long_prompt[0..50] + "..."
-          assert_equal "🌍 Fetching example.com\n  analyzing: #{expected_prompt}", result
+          assert_equal "🌍 Fetching example.com\n        analyzing: #{expected_prompt}", result
         end
         
         def test_format_webfetch_empty_prompt
@@ -139,7 +139,7 @@ module AutoClaude
           input = { "prompt" => "Analyze this" }
           result = @formatter.format("webfetch", input)
           
-          assert_equal "🌍 Fetching unknown\n  analyzing: Analyze this...", result
+          assert_equal "🌍 Fetching unknown\n        analyzing: Analyze this...", result
         end
       end
     end

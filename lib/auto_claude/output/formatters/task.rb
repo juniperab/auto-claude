@@ -5,8 +5,9 @@ module AutoClaude
         def format(input)
           desc = extract_value(input, "description") || "task"
           agent = extract_value(input, "subagent_type") || "general"
+          indent = " " * FormatterConfig::STANDARD_INDENT
           
-          "#{FormatterConfig::TOOL_EMOJIS[:task]} Delegating: #{desc}\n  agent: #{agent}"
+          "#{FormatterConfig::TOOL_EMOJIS[:task]} Delegating: #{desc}\n#{indent}agent: #{agent}"
         end
       end
     end

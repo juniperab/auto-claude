@@ -31,8 +31,9 @@ module AutoClaude
         def format_write(input)
           path = extract_value(input, "file_path") || "unknown"
           content = extract_value(input, "content") || ""
+          indent = " " * FormatterConfig::STANDARD_INDENT
           size = content.length > FormatterConfig::KB_SIZE ? 
-            "\n  size: #{(content.length / FormatterConfig::KB_SIZE.to_f).round(1)}KB" : ""
+            "\n#{indent}size: #{(content.length / FormatterConfig::KB_SIZE.to_f).round(1)}KB" : ""
           
           "#{FormatterConfig::TOOL_EMOJIS[:write]} Writing to #{path}#{size}"
         end
@@ -46,8 +47,9 @@ module AutoClaude
           path = extract_value(input, "file_path") || "unknown"
           edits = extract_value(input, "edits") || []
           edit_count = edits.is_a?(Array) ? edits.length : 0
+          indent = " " * FormatterConfig::STANDARD_INDENT
           
-          "#{FormatterConfig::TOOL_EMOJIS[:multiedit]} Bulk editing #{path}\n  changes: #{edit_count} edits"
+          "#{FormatterConfig::TOOL_EMOJIS[:multiedit]} Bulk editing #{path}\n#{indent}changes: #{edit_count} edits"
         end
       end
     end

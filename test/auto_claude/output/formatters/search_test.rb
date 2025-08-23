@@ -26,7 +26,7 @@ module AutoClaude
           }
           result = @formatter.format("ls", input)
           
-          assert_equal "📂 Listing /home/user/\n  filter: excluding *.log", result
+          assert_equal "📂 Listing /home/user/\n        filter: excluding *.log", result
         end
         
         def test_format_ls_default_path
@@ -66,7 +66,7 @@ module AutoClaude
           }
           result = @formatter.format("grep", input)
           
-          assert_equal "🔍 Searching for 'TODO'\n  in: /src", result
+          assert_equal "🔍 Searching for 'TODO'\n        in: /src", result
         end
         
         def test_format_grep_with_context_c
@@ -76,7 +76,7 @@ module AutoClaude
           }
           result = @formatter.format("grep", input)
           
-          assert_equal "🔍 Searching for 'TODO'\n  context: ±3 lines", result
+          assert_equal "🔍 Searching for 'TODO'\n        context: ±3 lines", result
         end
         
         def test_format_grep_with_context_a_and_b_equal
@@ -87,7 +87,7 @@ module AutoClaude
           }
           result = @formatter.format("grep", input)
           
-          assert_equal "🔍 Searching for 'TODO'\n  context: ±2 lines", result
+          assert_equal "🔍 Searching for 'TODO'\n        context: ±2 lines", result
         end
         
         def test_format_grep_with_context_a_and_b_different
@@ -110,7 +110,7 @@ module AutoClaude
           }
           result = @formatter.format("grep", input)
           
-          assert_equal "🔍 Searching for 'TODO'\n  in: /src\n  context: ±5 lines", result
+          assert_equal "🔍 Searching for 'TODO'\n        in: /src\n        context: ±5 lines", result
         end
         
         # WebSearch operation tests

@@ -22,7 +22,8 @@ module AutoClaude
         def format_ls(input)
           path = extract_value(input, "path") || "."
           ignore = extract_value(input, "ignore")
-          filter = ignore ? "\n  filter: excluding #{ignore}" : ""
+          indent = " " * FormatterConfig::STANDARD_INDENT
+          filter = ignore ? "\n#{indent}filter: excluding #{ignore}" : ""
           
           "#{FormatterConfig::TOOL_EMOJIS[:ls]} Listing #{path}/#{filter}"
         end
@@ -36,9 +37,10 @@ module AutoClaude
           pattern = extract_value(input, "pattern") || ""
           path = extract_value(input, "path")
           context = extract_grep_context(input)
+          indent = " " * FormatterConfig::STANDARD_INDENT
           
-          location = path ? "\n  in: #{path}" : ""
-          context_info = context ? "\n  context: ±#{context} lines" : ""
+          location = path ? "\n#{indent}in: #{path}" : ""
+          context_info = context ? "\n#{indent}context: ±#{context} lines" : ""
           
           "#{FormatterConfig::TOOL_EMOJIS[:grep]} Searching for '#{pattern}'#{location}#{context_info}"
         end

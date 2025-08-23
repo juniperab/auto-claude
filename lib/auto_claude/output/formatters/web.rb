@@ -20,8 +20,9 @@ module AutoClaude
           prompt = extract_value(input, "prompt")
           
           domain = extract_domain(url)
+          indent = " " * FormatterConfig::STANDARD_INDENT
           analyzing = prompt && prompt.length > 0 ? 
-            "\n  analyzing: #{prompt[0..50]}..." : ""
+            "\n#{indent}analyzing: #{prompt[0..50]}..." : ""
           
           "#{FormatterConfig::TOOL_EMOJIS[:webfetch]} Fetching #{domain}#{analyzing}"
         end

@@ -56,7 +56,7 @@ module AutoClaude
           }
           result = @formatter.format("write", input)
           
-          assert_equal "✍️ Writing to /path/to/file.rb\n  size: 2.0KB", result
+          assert_equal "✍️ Writing to /path/to/file.rb\n        size: 2.0KB", result
         end
         
         def test_format_write_nil_content
@@ -93,7 +93,7 @@ module AutoClaude
           }
           result = @formatter.format("multiedit", input)
           
-          assert_equal "✂️ Bulk editing /path/to/file.rb\n  changes: 3 edits", result
+          assert_equal "✂️ Bulk editing /path/to/file.rb\n        changes: 3 edits", result
         end
         
         def test_format_multiedit_empty_edits
@@ -103,14 +103,14 @@ module AutoClaude
           }
           result = @formatter.format("multiedit", input)
           
-          assert_equal "✂️ Bulk editing /path/to/file.rb\n  changes: 0 edits", result
+          assert_equal "✂️ Bulk editing /path/to/file.rb\n        changes: 0 edits", result
         end
         
         def test_format_multiedit_nil_edits
           input = { "file_path" => "/path/to/file.rb" }
           result = @formatter.format("multiedit", input)
           
-          assert_equal "✂️ Bulk editing /path/to/file.rb\n  changes: 0 edits", result
+          assert_equal "✂️ Bulk editing /path/to/file.rb\n        changes: 0 edits", result
         end
         
         # Unknown operation test
@@ -151,7 +151,7 @@ module AutoClaude
             "content" => "x" * 1025
           }
           result = @formatter.format("write", input)
-          assert_equal "✍️ Writing to /file.rb\n  size: 1.0KB", result
+          assert_equal "✍️ Writing to /file.rb\n        size: 1.0KB", result
         end
       end
     end
