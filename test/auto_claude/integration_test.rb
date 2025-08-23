@@ -133,18 +133,6 @@ module AutoClaude
       end
     end
 
-    def test_module_convenience_method
-      mock_response = <<~JSON
-        {"type": "result", "subtype": "success", "result": "Quick result"}
-      JSON
-
-      Open3.stub :popen3, create_mock_popen(mock_response) do
-        result = AutoClaude.run("Quick test", output: AutoClaude::Output::Memory.new)
-
-        assert_equal "Quick result", result
-      end
-    end
-
     private
 
     def create_mock_popen(stdout_content, exit_code = 0, stderr_content = "")

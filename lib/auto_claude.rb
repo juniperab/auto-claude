@@ -7,12 +7,7 @@ loader.inflector.inflect("cli" => "CLI")
 loader.setup
 
 module AutoClaude
-  # Convenience method for quick usage
-  def self.run(prompt, **)
-    client = Client.new(**)
-    session = client.run(prompt)
-    session.result&.content || ""
-  end
+  # Main module for auto-claude
 end
 
 loader.eager_load

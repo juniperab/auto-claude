@@ -1,0 +1,58 @@
+# Integration Tests
+
+These tests exercise auto-claude with the real Claude CLI. They are not run by default.
+
+## Prerequisites
+
+1. Claude CLI must be installed and available in PATH
+2. Valid Claude API credentials configured
+
+## Running Integration Tests
+
+```bash
+# Run integration tests only
+rake test:integration_only
+
+# Or set the environment variable manually
+INTEGRATION=true rake integration
+
+# Run with debug output
+DEBUG=true INTEGRATION=true rake integration
+
+# Run all tests including integration
+INTEGRATION=true rake test:all
+```
+
+## What These Tests Do
+
+- **test_todays_date_via_cli**: Runs auto-claude via command line, asks for today's date
+- **test_todays_date_via_api**: Uses Ruby API directly, asks for today's date  
+- **test_simple_math_via_cli**: Tests basic math question
+- **test_with_model_option**: Tests passing Claude CLI options
+- **test_error_handling**: Tests error conditions
+
+## Important Notes
+
+1. These tests make real API calls to Claude and will consume API credits
+2. Responses are non-deterministic - tests use fuzzy matching
+3. Tests may fail due to network issues or API rate limits
+4. Integration tests are excluded from the default test suite
+
+## Adding New Integration Tests
+
+Create new test files in `test/integration/` that inherit from `AutoClaude::IntegrationTest::Base`:
+
+```ruby
+require_relative "integration_helper"
+
+module AutoClaude
+  module IntegrationTest
+    class MyTest < Base
+      def test_something
+        result = run_auto_claude("prompt")
+        assert result[:success]
+      end
+    end
+  end
+end
+```
