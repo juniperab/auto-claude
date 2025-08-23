@@ -62,7 +62,8 @@ module AutoClaude
       end
 
       def format_session_complete(tasks, duration, cost)
-        "#{FormatterConfig::MESSAGE_EMOJIS[:session_complete]} Complete: #{tasks} tasks, #{duration}s, $#{"%.6f" % cost}"
+        cost_str = format("%.6f", cost)
+        "#{FormatterConfig::MESSAGE_EMOJIS[:session_complete]} Complete: #{tasks} tasks, #{duration}s, $#{cost_str}"
       end
 
       def format_stats(tokens_up, tokens_down)
@@ -108,7 +109,8 @@ module AutoClaude
       end
 
       def handle_formatting_error(error, message)
-        warn "#{FormatterConfig::MESSAGE_EMOJIS[:error]} Warning: Failed to format message - #{error.class}: #{error.message}"
+        msg = "#{FormatterConfig::MESSAGE_EMOJIS[:error]} Warning: Failed to format message"
+        warn "#{msg} - #{error.class}: #{error.message}"
         begin
           warn "  Raw message: #{message.inspect}"
         rescue StandardError

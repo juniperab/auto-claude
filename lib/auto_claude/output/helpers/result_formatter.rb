@@ -32,7 +32,7 @@ module AutoClaude
 
           if line_count.zero? || output_length.zero?
             "#{emoji} Result: (empty)"
-          elsif line_count == 1 && output_length <= FormatterConfig::MAX_LINE_LENGTH && !is_links_line?(first_line)
+          elsif line_count == 1 && output_length <= FormatterConfig::MAX_LINE_LENGTH && !links_line?(first_line)
             "#{emoji} Result: #{first_line.to_s.chomp}"
           else
             "#{emoji} Result: [#{line_count} lines, #{size_kb}KB]"
@@ -42,10 +42,10 @@ module AutoClaude
         def should_show_preview?(line_count, output_length, first_line)
           line_count > 1 ||
             (line_count == 1 && output_length > FormatterConfig::MAX_LINE_LENGTH) ||
-            is_links_line?(first_line)
+            links_line?(first_line)
         end
 
-        def is_links_line?(line)
+        def links_line?(line)
           line&.to_s&.match(/^Links:\s*\[/)
         end
 

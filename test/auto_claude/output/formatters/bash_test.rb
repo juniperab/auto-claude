@@ -68,19 +68,19 @@ module AutoClaude
 
         def test_command_length_threshold
           # Test exactly at threshold (50 chars)
-          command_50 = "a" * 50
+          command_fifty = "a" * 50
           input = {
-            "command" => command_50,
+            "command" => command_fifty,
             "description" => "Test"
           }
           result = @formatter.format(input)
 
-          assert_equal "🖥️ Running: #{command_50}", result
+          assert_equal "🖥️ Running: #{command_fifty}", result
 
           # Test just over threshold (51 chars)
-          command_51 = "a" * 51
+          command_fifty_one = "a" * 51
           input = {
-            "command" => command_51,
+            "command" => command_fifty_one,
             "description" => "Test"
           }
           result = @formatter.format(input)

@@ -366,7 +366,7 @@ module AutoClaude
         stderr = StringIO.new(stderr_content)
 
         wait_thread = Minitest::Mock.new
-        status = Process::Status.allocate
+        status = ::Process::Status.allocate
         status.instance_variable_set(:@exitstatus, exit_code)
         status.define_singleton_method(:success?) { exit_code.zero? }
         status.define_singleton_method(:exitstatus) { @exitstatus }

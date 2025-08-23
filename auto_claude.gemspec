@@ -9,7 +9,8 @@ Gem::Specification.new do |spec|
   spec.email = ["juniper@stormchasers.ca"]
 
   spec.summary = "Run Claude non-interactively and format its streaming output elegantly"
-  spec.description = "A CLI tool that runs Claude in non-interactive mode with elegant streaming output formatting and some additional useful command-line options"
+  spec.description = "A CLI tool that runs Claude in non-interactive mode with elegant streaming " \
+                     "output formatting and some additional useful command-line options"
   spec.homepage = "https://github.com/juniperab/auto-claude"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.4.0"
