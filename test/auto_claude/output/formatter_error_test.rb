@@ -22,7 +22,7 @@ module AutoClaude
         # Should not raise error, should handle gracefully
         output = @formatter.format_message(msg)
         refute_nil output
-        assert_match(/🖥️  Running: unknown/, output)
+        assert_match(/🖥️ Running: unknown/, output)
       end
       
       def test_format_message_with_missing_keys
@@ -37,7 +37,7 @@ module AutoClaude
         
         output = @formatter.format_message(msg)
         refute_nil output
-        assert_match(/✍️  Writing to unknown/, output)
+        assert_match(/✍️ Writing to unknown/, output)
       end
       
       def test_format_todo_with_nil_todos
@@ -108,7 +108,7 @@ module AutoClaude
         $stderr = original_stderr
         
         # Should return error message
-        assert_equal "⚠️  [Message formatting error]", output
+        assert_equal "⚠️ [Message formatting error]", output
         
         # Should have logged to stderr
         stderr_output = captured_stderr.string

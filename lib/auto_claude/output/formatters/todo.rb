@@ -44,7 +44,7 @@ module AutoClaude
         
         def select_display_items(todos, stats)
           items = []
-          target_total = 5
+          target_total = FormatterConfig::MAX_PREVIEW_LINES
           
           # Ideal distribution: 2 completed, 1 in_progress, 2 pending
           completed_target = 2
@@ -110,7 +110,8 @@ module AutoClaude
             icon = FormatterConfig::TODO_STATUS_ICONS[status] || "[ ]"
             content = todo["content"] || todo[:content] || "unknown" if todo.is_a?(Hash)
             content ||= "unknown"
-            lines << "  #{icon} #{content}"
+            indent = " " * FormatterConfig::STANDARD_INDENT
+            lines << "#{indent}#{icon} #{content}"
           end
           
           lines.join("\n")

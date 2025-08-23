@@ -162,9 +162,14 @@ module AutoClaude
         lines = output.split("\n")
         
         assert_match(/📝 Todo: updating task list/, lines[0])
-        assert_match(/🟢 Create models/, lines[1]) # Last completed
-        assert_match(/🔸 Write controllers/, lines[2]) # Current in progress
-        assert_match(/🔹 Add tests/, lines[3]) # Next pending
+        # Shows last 2 completed (Setup database, Create models)
+        assert_match(/        \[x\] Setup database/, lines[1])
+        assert_match(/        \[x\] Create models/, lines[2])
+        # Shows the in_progress
+        assert_match(/        \[-\] Write controllers/, lines[3])
+        # Shows first 2 pending
+        assert_match(/        \[ \] Add tests/, lines[4])
+        assert_match(/        \[ \] Deploy/, lines[5])
       end
       
       def test_format_todo_write_many_tasks
@@ -180,8 +185,8 @@ module AutoClaude
         output = @formatter.format_message(msg)
         lines = output.split("\n")
         
-        assert_match(/📝 Todo: 27 tasks \(10 🟢 \| 2 🔸 \| 15 🔹\)/, lines[0])
-        assert_equal 4, lines.length # Summary + 3 items
+        assert_match(/📝 Todo: 27 tasks \(10 completed\)/, lines[0])
+        assert_equal 6, lines.length # Summary + 5 items (now shows 5 instead of 3)
       end
       
       def test_format_web_fetch
@@ -262,7 +267,7 @@ module AutoClaude
         
         output = @formatter.format_message(msg)
         
-        assert_match(/📋 Result: Command completed successfully/, output)
+        assert_match(/   Result: Command completed successfully/, output)
       end
       
       def test_format_tool_result_error
@@ -273,7 +278,7 @@ module AutoClaude
         
         output = @formatter.format_message(msg)
         
-        assert_match(/⚠️  Error: Permission denied/, output)
+        assert_match(/⚠️ Error: Permission denied/, output)
       end
       
       def test_format_tool_result_large
@@ -285,8 +290,8 @@ module AutoClaude
         output = @formatter.format_message(msg)
         lines = output.split("\n")
         
-        assert_match(/📋 Result: \[1 lines, 1\.0KB\]/, lines[0])
-        assert_match(/^  x+$/, lines[1])
+        assert_match(/   Result: \[1 lines, 1\.0KB\]/, lines[0])
+        assert_match(/^        x+$/, lines[1])
         assert_equal 2, lines.length # Single line, no ellipsis
       end
       

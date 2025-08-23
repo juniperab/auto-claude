@@ -105,7 +105,7 @@ module AutoClaude
         
         private
         
-        def calculate_smart_indent(lines, target_indent = 8)
+        def calculate_smart_indent(lines, target_indent = FormatterConfig::STANDARD_INDENT)
           return " " * target_indent if lines.empty?
           
           # Find minimum indent among all lines (ignoring empty lines)

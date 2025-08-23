@@ -25,16 +25,18 @@ module AutoClaude
         refute_nil output
         lines = output.split("\n")
         
-        assert_match(/📋 Result: \[5 lines, 0\.\dKB\]/, lines[0])
-        assert_match(/Web search results/, lines[1])
-        assert_equal 7, lines.length # Header + 5 preview lines + ellipsis
+        assert_match(/   Result: \[5 lines, 0\.\dKB\]/, lines[0])
+        assert_equal "  Links:", lines[1]
+        assert_match(/How to refactor/, lines[2])
+        assert_match(/God Object - A Code Smell/, lines[3])
+        assert_equal 4, lines.length # Header + Links header + 2 links
       end
       
       def test_nil_content_in_result
         msg = create_tool_result(nil)
         output = @formatter.format_message(msg)
         
-        assert_equal "📋 Result: (empty)", output
+        assert_equal "   Result: (empty)", output
       end
       
       def test_result_with_nil_lines_edge_case
@@ -42,7 +44,7 @@ module AutoClaude
         msg = create_tool_result("")
         output = @formatter.format_message(msg)
         
-        assert_equal "📋 Result: (empty)", output
+        assert_equal "   Result: (empty)", output
       end
       
       def test_result_with_special_characters
@@ -51,7 +53,7 @@ module AutoClaude
         output = @formatter.format_message(msg)
         
         refute_nil output
-        assert_match(/📋 Result:/, output)
+        assert_match(/   Result:/, output)
       end
       
       def test_truncate_text_with_nil
@@ -68,13 +70,9 @@ module AutoClaude
       
       def test_format_result_with_preview_nil_input
         # Test through the public interface with a nil result
-        msg = Messages::Base.from_json({
-          "type" => "tool_result",
-          "tool_use_id" => "test",
-          "output" => nil
-        })
+        msg = create_tool_result(nil)
         result = @formatter.format_message(msg)
-        assert_equal "📋 Result: (empty)", result
+        assert_equal "   Result: (empty)", result
       end
       
       def test_large_websearch_result
@@ -97,9 +95,15 @@ module AutoClaude
         refute_nil output
         lines = output.split("\n")
         
-        assert_match(/📋 Result: \[\d+ lines, \d+\.\dKB\]/, lines[0])
-        assert_equal "  Web search results for query: \"test query\"", lines[1]
-        assert_equal "  ...", lines[6] # Should have ellipsis after 5 preview lines
+        assert_match(/   Result: \[\d+ lines, \d+\.\dKB\]/, lines[0])
+        assert_equal "  Links:", lines[1]
+        # Should show first 5 links
+        assert_match(/Result 1/, lines[2])
+        assert_match(/Result 2/, lines[3])
+        assert_match(/Result 3/, lines[4])
+        assert_match(/Result 4/, lines[5])
+        assert_match(/Result 5/, lines[6])
+        assert_equal "  ...", lines[7] # Ellipsis for more links
       end
       
       private

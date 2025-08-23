@@ -16,7 +16,7 @@ module AutoClaude
         output = @formatter.format_message(msg)
         
         lines = output.split("\n")
-        assert_match(/📋 Result: \[1 lines, 0\.\dKB\]/, lines[0])
+        assert_match(/   Result: \[1 lines, 0\.\dKB\]/, lines[0])
         assert_equal "  Links:", lines[1]
         assert_equal "    • Ruby Documentation (ruby-lang.org)", lines[2]
       end
@@ -33,7 +33,7 @@ module AutoClaude
         output = @formatter.format_message(msg)
         
         lines = output.split("\n")
-        assert_match(/📋 Result: \[1 lines, 0\.\dKB\]/, lines[0])
+        assert_match(/   Result: \[1 lines, 0\.\dKB\]/, lines[0])
         assert_equal "  Links:", lines[1]
         assert_equal "    • First Result (example.com)", lines[2]
         assert_equal "    • Second Result (test.org)", lines[3]
@@ -48,7 +48,7 @@ module AutoClaude
         output = @formatter.format_message(msg)
         
         lines = output.split("\n")
-        assert_match(/📋 Result: \[1 lines, 0\.\dKB\]/, lines[0])
+        assert_match(/   Result: \[1 lines, 0\.\dKB\]/, lines[0])
         assert_equal "  Links:", lines[1]
         assert_equal "    • Result 1 (site1.com)", lines[2]
         assert_equal "    • Result 2 (site2.com)", lines[3]
@@ -84,12 +84,11 @@ module AutoClaude
         output = @formatter.format_message(msg)
         
         lines = output.split("\n")
-        assert_match(/📋 Result: \[5 lines, 0\.\dKB\]/, lines[0])
-        assert_equal '  Web search results for query: "test"', lines[1]
-        assert_equal "  ", lines[2]
-        assert_equal "  Links:", lines[3]
-        assert_equal "    • Test Result (test.com)", lines[4]
-        assert_equal "  ...", lines[5] # More content follows
+        assert_match(/   Result: \[5 lines, 0\.\dKB\]/, lines[0])
+        # When Links are present, they're shown instead of the full content
+        assert_equal "  Links:", lines[1]
+        assert_equal "    • Test Result (test.com)", lines[2]
+        assert_equal 4, lines.length # Header + Links header + 1 link + ellipsis (more content after Links)
       end
       
       def test_format_links_missing_fields

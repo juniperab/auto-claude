@@ -7,6 +7,9 @@ module AutoClaude
       MAX_TODO_DISPLAY = 6
       MAX_TITLE_LENGTH = 50
       
+      # Formatting
+      STANDARD_INDENT = 8  # Standard indentation for preview content
+      
       # Sizes
       KB_SIZE = 1024
       LONG_COMMAND_THRESHOLD = 50

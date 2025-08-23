@@ -113,7 +113,7 @@ class AutoClaude::OutputTest < Minitest::Test
     
     bash_msg = create_tool_use_message("Bash", {"command" => "pwd"})
     formatted = formatter.format_message(bash_msg)
-    assert_equal '🖥️  Running: pwd', formatted
+    assert_equal '🖥️ Running: pwd', formatted
     
     read_msg = create_tool_use_message("Read", {"file_path" => "/tmp/test.txt"})
     formatted = formatter.format_message(read_msg)

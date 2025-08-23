@@ -13,7 +13,7 @@ module AutoClaude
         msg = create_tool_message_with_nil_input("Write")
         output = @formatter.format_message(msg)
         
-        assert_match(/✍️  Writing to unknown/, output)
+        assert_match(/✍️ Writing to unknown/, output)
         refute_match(/undefined method/, output)
       end
       
@@ -29,7 +29,7 @@ module AutoClaude
         msg = create_tool_message("Bash", nil)
         output = @formatter.format_message(msg)
         
-        assert_match(/🖥️  Running: unknown/, output)
+        assert_match(/🖥️ Running: unknown/, output)
       end
       
       def test_format_grep_with_nil_input
@@ -51,7 +51,7 @@ module AutoClaude
         msg = create_tool_message("MultiEdit", {"file_path" => "/test.rb"})
         output = @formatter.format_message(msg)
         
-        assert_match(/✂️  Bulk editing \/test.rb/, output)
+        assert_match(/✂️ Bulk editing \/test.rb/, output)
         assert_match(/changes: 0 edits/, output)
       end
       

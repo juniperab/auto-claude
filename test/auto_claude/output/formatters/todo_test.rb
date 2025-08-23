@@ -43,9 +43,9 @@ module AutoClaude
           result = @formatter.format(input)
           
           assert_match(/📝 Todo: updating task list/, result)
-          assert_match(/\[x\] Task 3/, result)
-          assert_match(/\[-\] Task 2/, result)
-          assert_match(/\[ \] Task 1/, result)
+          assert_match(/^        \[x\] Task 3$/, result)
+          assert_match(/^        \[-\] Task 2$/, result)
+          assert_match(/^        \[ \] Task 1$/, result)
         end
         
         def test_format_many_tasks

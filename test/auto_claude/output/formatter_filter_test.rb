@@ -43,7 +43,7 @@ module AutoClaude
         output = @formatter.format_message(msg)
         
         refute_nil output
-        assert_match(/📋 Result: Command completed successfully/, output)
+        assert_match(/   Result: Command completed successfully/, output)
       end
       
       def test_does_not_filter_error_results
@@ -59,7 +59,7 @@ module AutoClaude
         output = @formatter.format_message(msg)
         
         refute_nil output
-        assert_match(/📋 Result:/, output)
+        assert_match(/   Result:/, output)
       end
       
       def test_filters_with_leading_whitespace
