@@ -1,16 +1,18 @@
-require_relative 'formatter_config'
-require_relative 'formatter_registry'
-require_relative 'formatters/base'
-require_relative 'formatters/bash'
-require_relative 'formatters/file'
-require_relative 'formatters/search'
-require_relative 'formatters/web'
-require_relative 'formatters/task'
-require_relative 'formatters/todo'
-require_relative 'formatters/mcp'
-require_relative 'helpers/text_truncator'
-require_relative 'helpers/link_parser'
-require_relative 'helpers/result_formatter'
+# frozen_string_literal: true
+
+require_relative "formatter_config"
+require_relative "formatter_registry"
+require_relative "formatters/base"
+require_relative "formatters/bash"
+require_relative "formatters/file"
+require_relative "formatters/search"
+require_relative "formatters/web"
+require_relative "formatters/task"
+require_relative "formatters/todo"
+require_relative "formatters/mcp"
+require_relative "helpers/text_truncator"
+require_relative "helpers/link_parser"
+require_relative "helpers/result_formatter"
 
 module AutoClaude
   module Output
@@ -24,15 +26,19 @@ module AutoClaude
 
       def format_message(message)
         # Show raw JSON for debugging when AUTOCLAUDE_SHOW_RAW_MESSAGES is set
-        if ENV['AUTOCLAUDE_SHOW_RAW_MESSAGES']
-          max_length = ENV['AUTOCLAUDE_SHOW_RAW_MESSAGES'].to_i
-          max_length = 160 if max_length <= 0  # Default to 160 if invalid
-          
-          raw = message.raw_json.to_json rescue message.inspect
-          truncated = raw.length > max_length ? "#{raw[0..(max_length-4)]}..." : raw
-          $stderr.puts "[RAW] #{truncated}"
+        if ENV["AUTOCLAUDE_SHOW_RAW_MESSAGES"]
+          max_length = ENV["AUTOCLAUDE_SHOW_RAW_MESSAGES"].to_i
+          max_length = 160 if max_length <= 0 # Default to 160 if invalid
+
+          raw = begin
+            message.raw_json.to_json
+          rescue StandardError
+            message.inspect
+          end
+          truncated = raw.length > max_length ? "#{raw[0..(max_length - 4)]}..." : raw
+          warn "[RAW] #{truncated}"
         end
-        
+
         case message
         when Messages::TextMessage
           format_text_message(message)
@@ -43,7 +49,7 @@ module AutoClaude
         else
           "  [#{message.type}]"
         end
-      rescue => e
+      rescue StandardError => e
         handle_formatting_error(e, message)
       end
 
@@ -56,7 +62,7 @@ module AutoClaude
       end
 
       def format_session_complete(tasks, duration, cost)
-        "#{FormatterConfig::MESSAGE_EMOJIS[:session_complete]} Complete: #{tasks} tasks, #{duration}s, $#{'%.6f' % cost}"
+        "#{FormatterConfig::MESSAGE_EMOJIS[:session_complete]} Complete: #{tasks} tasks, #{duration}s, $#{"%.6f" % cost}"
       end
 
       def format_stats(tokens_up, tokens_down)
@@ -67,7 +73,7 @@ module AutoClaude
 
       def format_text_message(message)
         text = message.text || ""
-        special_case = text.include?('TodoWrite')
+        special_case = text.include?("TodoWrite")
         "#{FormatterConfig::MESSAGE_EMOJIS[:assistant]} #{@text_truncator.truncate(text, special_case: special_case)}"
       end
 
@@ -77,34 +83,37 @@ module AutoClaude
 
       def format_tool_result(message)
         output = message.output || ""
-        
+
         # Filter out certain messages unless AUTOCLAUDE_DISABLE_FILTERS is set
         if !message.is_error && should_filter_message?(output)
-          if ENV['AUTOCLAUDE_DISABLE_FILTERS']
-            return "[FILTERED] #{@result_formatter.format(output)}"
-          else
-            return nil
-          end
+          return "[FILTERED] #{@result_formatter.format(output)}" if ENV["AUTOCLAUDE_DISABLE_FILTERS"]
+
+          return nil
+
         end
-        
+
         if message.is_error
           "#{FormatterConfig::MESSAGE_EMOJIS[:error]} Error: #{@text_truncator.truncate(output)}"
         else
           @result_formatter.format(output)
         end
       end
-      
+
       def should_filter_message?(text)
         return false if text.nil? || text.empty?
-        
+
         FormatterConfig::FILTERED_MESSAGE_PREFIXES.any? do |prefix|
           text.strip.start_with?(prefix)
         end
       end
-      
+
       def handle_formatting_error(error, message)
-        $stderr.puts "#{FormatterConfig::MESSAGE_EMOJIS[:error]} Warning: Failed to format message - #{error.class}: #{error.message}"
-        $stderr.puts "  Raw message: #{message.inspect}" rescue nil
+        warn "#{FormatterConfig::MESSAGE_EMOJIS[:error]} Warning: Failed to format message - #{error.class}: #{error.message}"
+        begin
+          warn "  Raw message: #{message.inspect}"
+        rescue StandardError
+          nil
+        end
         "#{FormatterConfig::MESSAGE_EMOJIS[:error]} [Message formatting error]"
       end
     end

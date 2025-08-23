@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module AutoClaude
   module Output
     module Formatters
@@ -6,7 +8,7 @@ module AutoClaude
           desc = extract_value(input, "description") || "task"
           agent = extract_value(input, "subagent_type") || "general"
           indent = " " * FormatterConfig::STANDARD_INDENT
-          
+
           "#{FormatterConfig::TOOL_EMOJIS[:task]} Delegating: #{desc}\n#{indent}agent: #{agent}"
         end
       end

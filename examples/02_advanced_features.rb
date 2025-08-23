@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Advanced features of auto-claude gem
 # Shows callbacks, session metadata, and real-time message handling
 
-require 'auto_claude'
+require "auto_claude"
 
 # =============================================================================
 # 1. Real-time message callbacks
@@ -47,8 +48,8 @@ session = client.run("Write a haiku about programming")
 puts "Session Statistics:"
 puts "  Success: #{session.success?}"
 puts "  Session ID: #{session.session_id}"
-puts "  Duration: #{'%.2f' % session.duration} seconds"
-puts "  Cost: $#{'%.6f' % session.cost}"
+puts "  Duration: #{"%.2f" % session.duration} seconds"
+puts "  Cost: $#{"%.6f" % session.cost}"
 puts "  Tokens: #{session.token_usage[:input]} input, #{session.token_usage[:output]} output"
 puts "  Metadata: #{session.metadata.inspect}"
 puts
@@ -77,7 +78,7 @@ sleep 0.1
 sessions = threads.map(&:value)
 
 sessions.each_with_index do |session, i|
-  puts "  Session #{i+1}: #{session.result.content}"
+  puts "  Session #{i + 1}: #{session.result.content}"
 end
 puts
 
@@ -87,10 +88,10 @@ puts
 puts "4. Logging to file"
 puts "=" * 60
 
-require 'tempfile'
+require "tempfile"
 
 # Create a temporary log file
-log_file = Tempfile.new(['claude_log', '.txt'])
+log_file = Tempfile.new(["claude_log", ".txt"])
 
 # Create outputs
 file_output = AutoClaude::Output::File.new(log_file.path)
@@ -120,11 +121,11 @@ puts "=" * 60
 memory_output = AutoClaude::Output::Memory.new
 client = AutoClaude::Client.new(output: memory_output)
 
-session = client.run("What is Ruby?")
+client.run("What is Ruby?")
 
 puts "Captured in memory:"
 puts "  Messages: #{memory_output.messages.count}"
-puts "  User messages: #{memory_output.user_messages.join(', ')}"
+puts "  User messages: #{memory_output.user_messages.join(", ")}"
 puts "  Stats: #{memory_output.stats.inspect}"
 puts "  Errors: #{memory_output.errors.inspect}"
 puts "  Info: #{memory_output.info.inspect}"
@@ -158,16 +159,16 @@ puts
 puts "7. Working with specific directories"
 puts "=" * 60
 
-require 'tmpdir'
+require "tmpdir"
 
 Dir.mktmpdir do |tmpdir|
   # Create a test file
   File.write(File.join(tmpdir, "test.txt"), "Hello from test file!")
-  
+
   # Run Claude in that directory
   client = AutoClaude::Client.new(directory: tmpdir)
   session = client.run("What files are in the current directory?")
-  
+
   puts "Working in: #{tmpdir}"
   puts "Claude found: #{session.result.content}"
 end

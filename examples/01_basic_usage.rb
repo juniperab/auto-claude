@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Basic usage examples for auto-claude gem
 # Shows the simplest ways to use the library
 
-require 'auto_claude'
+require "auto_claude"
 
 # =============================================================================
 # Method 1: Module-level convenience method (simplest)
@@ -23,7 +24,7 @@ puts "=" * 60
 
 result = AutoClaude::App.run(
   "What is the capital of France?",
-  directory: "/tmp"  # Optional: run in specific directory
+  directory: "/tmp" # Optional: run in specific directory
 )
 puts "Result: #{result}"
 puts
@@ -44,7 +45,7 @@ session = client.run("List the primary colors")
 if session.success?
   puts "Result: #{session.result.content}"
   puts "Session ID: #{session.session_id}"
-  puts "Cost: $#{'%.6f' % session.cost}" if session.cost > 0
+  puts "Cost: $#{"%.6f" % session.cost}" if session.cost.positive?
 else
   puts "Error: #{session.result.error_message}"
 end

@@ -1,10 +1,11 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Concurrent and parallel execution with auto-claude
 # Shows how to run multiple Claude sessions efficiently
 
-require 'auto_claude'
-require 'benchmark'
+require "auto_claude"
+require "benchmark"
 
 # =============================================================================
 # 1. Simple concurrent execution
@@ -25,7 +26,7 @@ threads = [
 sessions = threads.map(&:value)
 
 sessions.each_with_index do |session, i|
-  puts "  Session #{i+1}: #{session.result.content}"
+  puts "  Session #{i + 1}: #{session.result.content}"
 end
 puts
 
@@ -51,7 +52,7 @@ time = Benchmark.realtime do
   threads = math_problems.map do |problem|
     client.run_async(problem)
   end
-  
+
   # Collect results as they complete
   threads.each_with_index do |thread, i|
     session = thread.value
@@ -59,7 +60,7 @@ time = Benchmark.realtime do
   end
 end
 
-puts "Processed #{math_problems.length} problems in #{'%.2f' % time} seconds"
+puts "Processed #{math_problems.length} problems in #{"%.2f" % time} seconds"
 puts
 
 # =============================================================================
@@ -77,15 +78,15 @@ results = []
 
 tasks.each_slice(batch_size).with_index do |batch, batch_num|
   puts "  Processing batch #{batch_num + 1}..."
-  
+
   client = AutoClaude::Client.new
-  
+
   # Process this batch in parallel
   threads = batch.map { |task| client.run_async(task) }
   batch_results = threads.map(&:value)
-  
+
   batch_results.each_with_index do |session, i|
-    task_index = batch_num * batch_size + i
+    task_index = (batch_num * batch_size) + i
     results << "#{tasks[task_index]} = #{session.result.content}"
   end
 end
@@ -100,8 +101,6 @@ puts
 puts "4. Producer-consumer pattern"
 puts "=" * 60
 
-require 'thread'
-
 # Create a queue for tasks
 task_queue = Queue.new
 result_queue = Queue.new
@@ -115,12 +114,12 @@ end
 workers = 2.times.map do |worker_id|
   Thread.new do
     client = AutoClaude::Client.new
-    
-    while !task_queue.empty?
+
+    until task_queue.empty?
       begin
-        task = task_queue.pop(true)  # Non-blocking pop
+        task = task_queue.pop(true) # Non-blocking pop
         puts "  Worker #{worker_id}: Processing '#{task}'"
-        
+
         session = client.run(task)
         result_queue << {
           task: task,
@@ -208,16 +207,16 @@ time = Benchmark.realtime do
       [type, session]
     end
   end
-  
+
   # Collect and display results
   results = threads.map(&:value)
-  
+
   results.each do |type, session|
-    puts "  [#{type}]: #{session.result.content[0..100]}#{'...' if session.result.content.length > 100}"
+    puts "  [#{type}]: #{session.result.content[0..100]}#{"..." if session.result.content.length > 100}"
   end
 end
 
-puts "\nCompleted #{tasks.size} diverse tasks in #{'%.2f' % time} seconds"
+puts "\nCompleted #{tasks.size} diverse tasks in #{"%.2f" % time} seconds"
 puts
 
 # =============================================================================
@@ -239,20 +238,18 @@ failed = []
 
 threads = questions.map do |question|
   Thread.new do
-    begin
-      session = client.run(question)
-      
-      if session.success?
-        successful << { question: question, answer: session.result.content }
-      else
-        failed << { question: question, error: session.result.error_message }
-      end
-      
-      session
-    rescue => e
-      failed << { question: question, error: e.message }
-      nil
+    session = client.run(question)
+
+    if session.success?
+      successful << { question: question, answer: session.result.content }
+    else
+      failed << { question: question, error: session.result.error_message }
     end
+
+    session
+  rescue StandardError => e
+    failed << { question: question, error: e.message }
+    nil
   end
 end
 

@@ -1,11 +1,12 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Custom output handling with auto-claude
 # Shows how to capture, redirect, and process Claude's output
 
-require 'auto_claude'
-require 'stringio'
-require 'json'
+require "auto_claude"
+require "stringio"
+require "json"
 
 # =============================================================================
 # 1. Memory output for testing
@@ -33,9 +34,9 @@ puts
 puts "2. File logging"
 puts "=" * 60
 
-require 'tempfile'
+require "tempfile"
 
-log_file = Tempfile.new(['claude', '.log'])
+log_file = Tempfile.new(["claude", ".log"])
 puts "Logging to: #{log_file.path}"
 
 file_output = AutoClaude::Output::File.new(log_file.path)
@@ -62,7 +63,7 @@ puts
 puts "3. Multiplexed output"
 puts "=" * 60
 
-log_file = Tempfile.new(['claude_multi', '.log'])
+log_file = Tempfile.new(["claude_multi", ".log"])
 
 # Create multiple outputs
 terminal = AutoClaude::Output::Terminal.new
@@ -73,7 +74,7 @@ memory = AutoClaude::Output::Memory.new
 multi = AutoClaude::Output::Multiplexer.new([terminal, file, memory])
 
 client = AutoClaude::Client.new(output: multi)
-session = client.run("What is 2+2?")
+client.run("What is 2+2?")
 
 file.close
 
@@ -91,12 +92,12 @@ puts "=" * 60
 # Create a custom output that filters messages
 class FilteredOutput < AutoClaude::Output::Writer
   attr_reader :assistant_messages, :tool_uses
-  
+
   def initialize
     @assistant_messages = []
     @tool_uses = []
   end
-  
+
   def write_message(message)
     case message
     when AutoClaude::Messages::TextMessage
@@ -105,23 +106,23 @@ class FilteredOutput < AutoClaude::Output::Writer
       @tool_uses << "#{message.tool_name}: #{message.tool_input}"
     end
   end
-  
+
   def write_stat(key, value)
     # Ignore stats
   end
-  
+
   def write_user_message(text)
     # Ignore user messages
   end
-  
+
   def write_error(error)
     puts "ERROR: #{error}"
   end
-  
+
   def write_info(info)
     # Ignore info
   end
-  
+
   def write_divider
     # Ignore dividers
   end
@@ -130,7 +131,7 @@ end
 filtered = FilteredOutput.new
 client = AutoClaude::Client.new(output: filtered)
 
-session = client.run("Use the Bash tool to check the current directory")
+client.run("Use the Bash tool to check the current directory")
 
 puts "Filtered output captured:"
 puts "  Assistant messages: #{filtered.assistant_messages.count}"
@@ -148,7 +149,7 @@ puts "=" * 60
 # Custom JSON output writer
 class JSONOutput < AutoClaude::Output::Writer
   attr_reader :data
-  
+
   def initialize
     @data = {
       messages: [],
@@ -156,29 +157,29 @@ class JSONOutput < AutoClaude::Output::Writer
       metadata: {}
     }
   end
-  
+
   def write_message(message)
     @data[:messages] << {
-      type: message.class.name.split('::').last,
+      type: message.class.name.split("::").last,
       content: extract_content(message),
       timestamp: Time.now.iso8601
     }
   end
-  
+
   def write_stat(key, value)
     @data[:stats][key] = value
   end
-  
+
   def write_metadata(metadata)
     @data[:metadata] = metadata
   end
-  
-  def to_json
+
+  def to_json(*_args)
     JSON.pretty_generate(@data)
   end
-  
+
   private
-  
+
   def extract_content(message)
     case message
     when AutoClaude::Messages::TextMessage
@@ -193,7 +194,7 @@ class JSONOutput < AutoClaude::Output::Writer
       message.to_h
     end
   end
-  
+
   def write_user_message(text); end
   def write_error(error); end
   def write_info(info); end
@@ -207,7 +208,7 @@ session = client.run("What is the meaning of JSON?")
 json_output.write_metadata(session.metadata)
 
 puts "JSON output:"
-puts json_output.to_json[0..500] + "..."
+puts "#{json_output.to_json[0..500]}..."
 puts
 
 # =============================================================================
@@ -222,18 +223,18 @@ class StreamingOutput < AutoClaude::Output::Writer
     @stream_url = stream_url
     @buffer = []
   end
-  
+
   def write_message(message)
     # In real implementation, you'd send to the service
     @buffer << message
-    puts "  [STREAM] Would send to #{@stream_url}: #{message.class.name.split('::').last}"
+    puts "  [STREAM] Would send to #{@stream_url}: #{message.class.name.split("::").last}"
   end
-  
+
   def flush
     puts "  [STREAM] Flushing #{@buffer.count} messages to service"
     @buffer.clear
   end
-  
+
   def write_stat(key, value); end
   def write_user_message(text); end
   def write_error(error); end
@@ -273,7 +274,7 @@ time = Benchmark.realtime do
   puts "Completed silently. Result length: #{session.result.content.length} chars"
 end
 
-puts "Time: #{'%.2f' % time} seconds"
+puts "Time: #{"%.2f" % time} seconds"
 puts
 
 # =============================================================================
@@ -295,23 +296,23 @@ class PrettyOutput < AutoClaude::Output::Writer
       puts "✅ Complete: #{message.content[0..50]}..."
     end
   end
-  
+
   def write_stat(key, value)
     puts "📈 #{key}: #{value}"
   end
-  
+
   def write_user_message(text)
     puts "👤 User: #{text}"
   end
-  
+
   def write_error(error)
     puts "❌ Error: #{error}"
   end
-  
+
   def write_info(info)
     puts "ℹ️  #{info}"
   end
-  
+
   def write_divider
     puts "─" * 40
   end

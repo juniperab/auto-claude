@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Example of using auto-claude as a gem in a Ruby application
 
-require 'stringio'
-require_relative 'lib/auto_claude'
+require "stringio"
+require_relative "lib/auto_claude"
 
 # Example 1: Basic usage
 puts "Example 1: Basic usage"
@@ -61,11 +62,11 @@ puts
 puts "Example 6: Error handling"
 puts "-" * 50
 begin
-  result = AutoClaude::App.run(
+  AutoClaude::App.run(
     "Test",
     claude_options: ["--verbose"] # This should raise an error
   )
-rescue => e
+rescue StandardError => e
   puts "Caught expected error: #{e.message}"
 end
 puts
@@ -76,7 +77,7 @@ puts "-" * 50
 puts "Running with live stderr streaming:"
 result = AutoClaude::App.run(
   "Write a simple hello world function",
-  stderr_callback: -> (msg, type, color) { 
+  stderr_callback: lambda { |msg, type, color|
     # In a real application, you could:
     # - Update a UI progress indicator
     # - Stream to a websocket
@@ -96,7 +97,7 @@ other_messages = []
 
 result = AutoClaude::App.run(
   "What is the capital of France?",
-  stderr_callback: -> (msg, type, color) { 
+  stderr_callback: lambda { |msg, type, _color|
     if type == :stat
       stat_messages << msg.strip
     else

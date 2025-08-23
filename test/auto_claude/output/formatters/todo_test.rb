@@ -1,6 +1,8 @@
-require 'test_helper'
-require 'auto_claude/output/formatters/todo'
-require 'auto_claude/output/formatter_config'
+# frozen_string_literal: true
+
+require "test_helper"
+require "auto_claude/output/formatters/todo"
+require "auto_claude/output/formatter_config"
 
 module AutoClaude
   module Output
@@ -10,28 +12,28 @@ module AutoClaude
           @config = FormatterConfig.new
           @formatter = Todo.new(@config)
         end
-        
+
         def test_format_empty_list
           input = { "todos" => [] }
           result = @formatter.format(input)
-          
+
           assert_equal "📝 Todo: empty list", result
         end
-        
+
         def test_format_nil_todos
           input = { "todos" => nil }
           result = @formatter.format(input)
-          
+
           assert_equal "📝 Todo: empty list", result
         end
-        
+
         def test_format_no_todos_key
           input = {}
           result = @formatter.format(input)
-          
+
           assert_equal "📝 Todo: empty list", result
         end
-        
+
         def test_format_few_tasks
           input = {
             "todos" => [
@@ -41,30 +43,31 @@ module AutoClaude
             ]
           }
           result = @formatter.format(input)
-          
+
           assert_match(/📝 Todo: updating task list/, result)
           assert_match(/^        \[x\] Task 3$/, result)
           assert_match(/^        \[-\] Task 2$/, result)
           assert_match(/^        \[ \] Task 1$/, result)
         end
-        
+
         def test_format_many_tasks
           todos = []
           5.times { |i| todos << { "content" => "Pending #{i}", "status" => "pending" } }
           3.times { |i| todos << { "content" => "Progress #{i}", "status" => "in_progress" } }
           4.times { |i| todos << { "content" => "Done #{i}", "status" => "completed" } }
-          
+
           input = { "todos" => todos }
           result = @formatter.format(input)
-          
+
           # Should show summary with counts
           assert_match(/📝 Todo: 12 tasks \(4 completed\)/, result)
-          
+
           # Should show selected items
           lines = result.split("\n")
-          assert lines.length <= 6  # Summary + up to 5 items
+
+          assert_operator lines.length, :<=, 6 # Summary + up to 5 items
         end
-        
+
         def test_format_handles_nil_todo_items
           input = {
             "todos" => [
@@ -75,31 +78,31 @@ module AutoClaude
             ]
           }
           result = @formatter.format(input)
-          
+
           # Should skip nil items
           assert_match(/Valid task/, result)
           assert_match(/Another task/, result)
-          refute_match(/unknown.*unknown/, result)  # Shouldn't have multiple unknowns
+          refute_match(/unknown.*unknown/, result) # Shouldn't have multiple unknowns
         end
-        
+
         def test_format_handles_malformed_todo_items
           input = {
             "todos" => [
-              { "status" => "pending" },  # Missing content
-              { "content" => "Task without status" },  # Missing status
-              { "wrong_key" => "value" },  # Wrong structure
+              { "status" => "pending" }, # Missing content
+              { "content" => "Task without status" }, # Missing status
+              { "wrong_key" => "value" }, # Wrong structure
               { "content" => "Good task", "status" => "completed" }
             ]
           }
           result = @formatter.format(input)
-          
+
           # Should handle missing fields gracefully
-          assert_match(/unknown/, result)  # Missing content shows as unknown
+          assert_match(/unknown/, result) # Missing content shows as unknown
           assert_match(/Good task/, result)
-          # Note: "Task without status" might not appear due to selection logic
+          # NOTE: "Task without status" might not appear due to selection logic
           # (shows last completed, first in_progress, first pending)
         end
-        
+
         def test_format_with_symbol_keys
           input = {
             todos: [
@@ -108,11 +111,11 @@ module AutoClaude
             ]
           }
           result = @formatter.format(input)
-          
+
           assert_match(/Task 1/, result)
           assert_match(/Task 2/, result)
         end
-        
+
         def test_format_unknown_status
           input = {
             "todos" => [
@@ -120,13 +123,13 @@ module AutoClaude
             ]
           }
           result = @formatter.format(input)
-          
+
           # Should show the task (even though it doesn't match any status filter)
           assert_match(/📝 Todo: updating task list/, result)
           # The task won't be shown because it doesn't match pending/in_progress/completed
           # This is expected behavior - unknown statuses are filtered out
         end
-        
+
         def test_display_item_selection
           # Test that it shows: 2 completed, 1 in_progress, 2 pending (5 total)
           input = {
@@ -141,21 +144,21 @@ module AutoClaude
             ]
           }
           result = @formatter.format(input)
-          
+
           # Should show last 2 completed (Done 2, Done 3)
           assert_match(/Done 2/, result)
           assert_match(/Done 3/, result)
           refute_match(/Done 1/, result)
-          
+
           # Should show the in_progress
           assert_match(/Current/, result)
-          
+
           # Should show first 2 pending
           assert_match(/Pending 1/, result)
           assert_match(/Pending 2/, result)
           refute_match(/Pending 3/, result)
         end
-        
+
         def test_display_item_selection_adaptive
           # Test that it adapts when fewer items available
           input = {
@@ -168,39 +171,39 @@ module AutoClaude
             ]
           }
           result = @formatter.format(input)
-          
+
           # Should show 1 completed (only one available)
           assert_match(/Done 1/, result)
-          
+
           # No in_progress available
-          
+
           # Should show 4 pending (to fill up to 5 total)
           assert_match(/Pending 1/, result)
           assert_match(/Pending 2/, result)
           assert_match(/Pending 3/, result)
           assert_match(/Pending 4/, result)
         end
-        
+
         def test_format_with_nil_input
           result = @formatter.format(nil)
-          
+
           assert_equal "📝 Todo: empty list", result
         end
-        
+
         def test_exactly_at_max_display_threshold
           todos = Array.new(6) { |i| { "content" => "Task #{i}", "status" => "pending" } }
           input = { "todos" => todos }
           result = @formatter.format(input)
-          
+
           # At exactly 6 tasks, should still show "updating task list"
           assert_match(/📝 Todo: updating task list/, result)
         end
-        
+
         def test_just_over_max_display_threshold
           todos = Array.new(7) { |i| { "content" => "Task #{i}", "status" => "pending" } }
           input = { "todos" => todos }
           result = @formatter.format(input)
-          
+
           # At 7 tasks, should show summary with counts
           assert_match(/📝 Todo: 7 tasks/, result)
         end

@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Retry and resume functionality with auto-claude
 # Shows how to handle failures and continue sessions
 
-require 'auto_claude'
+require "auto_claude"
 
 # =============================================================================
 # 1. Basic retry with App.run
@@ -34,7 +35,7 @@ max_attempts = 3
 
 max_attempts.times do |attempt|
   puts "  Attempt #{attempt + 1}/#{max_attempts}"
-  
+
   # On retry, use the session ID from the previous attempt
   if session&.session_id
     puts "  Resuming session: #{session.session_id}"
@@ -42,9 +43,9 @@ max_attempts.times do |attempt|
       claude_options: ["--resume", session.session_id]
     )
   end
-  
+
   session = client.run("Calculate 123 * 456")
-  
+
   if session.success?
     puts "  Success! Result: #{session.result.content}"
     break
@@ -72,11 +73,11 @@ puts "  Session ID: #{session1.session_id}"
 if session1.session_id
   # Continue the same session
   puts "\nContinuing session #{session1.session_id}..."
-  
+
   client2 = AutoClaude::Client.new(
     claude_options: ["--resume", session1.session_id]
   )
-  
+
   session2 = client2.run("Continue counting for 3 more numbers")
   puts "  Continued result: #{session2.result.content}"
   puts "  Same conversation: #{session2.session_id == session1.session_id}"
@@ -92,36 +93,36 @@ puts "=" * 60
 def with_exponential_backoff(max_attempts: 3, base_delay: 1)
   attempt = 0
   session = nil
-  
+
   while attempt < max_attempts
     attempt += 1
-    delay = base_delay * (2 ** (attempt - 1))  # 1s, 2s, 4s, etc.
-    
+    delay = base_delay * (2**(attempt - 1)) # 1s, 2s, 4s, etc.
+
     puts "  Attempt #{attempt}/#{max_attempts}"
-    
+
     # Create client with resume if we have a session ID
     options = []
     if session&.session_id
       options = ["--resume", session.session_id]
       puts "  Resuming from: #{session.session_id}"
     end
-    
+
     client = AutoClaude::Client.new(claude_options: options)
     session = client.run(yield)
-    
+
     if session.success?
       puts "  Success!"
       return session
     else
       puts "  Failed: #{session.result.error_message}"
-      
+
       if attempt < max_attempts
         puts "  Waiting #{delay} seconds before retry..."
         sleep delay
       end
     end
   end
-  
+
   puts "  All attempts exhausted"
   session
 end
@@ -143,47 +144,47 @@ class RetryStrategy
   def self.with_resume(prompt, max_attempts: 3)
     session = nil
     client = nil
-    
+
     max_attempts.times do |attempt|
       # Use resume on retry
-      if session&.session_id && attempt > 0
-        client = AutoClaude::Client.new(
-          claude_options: ["--resume", session.session_id]
-        )
-      else
-        client = AutoClaude::Client.new
-      end
-      
+      client = if session&.session_id && attempt.positive?
+                 AutoClaude::Client.new(
+                   claude_options: ["--resume", session.session_id]
+                 )
+               else
+                 AutoClaude::Client.new
+               end
+
       session = client.run(prompt)
       return session if session.success?
     end
-    
+
     session
   end
-  
+
   def self.fresh_start(prompt, max_attempts: 3)
     session = nil
-    
-    max_attempts.times do |attempt|
+
+    max_attempts.times do |_attempt|
       # Always start fresh, no resume
       client = AutoClaude::Client.new
       session = client.run(prompt)
       return session if session.success?
     end
-    
+
     session
   end
-  
+
   def self.with_fallback_model(prompt, models: ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229"])
-    models.each_with_index do |model, i|
+    models.each_with_index do |model, _i|
       puts "  Trying with model: #{model}"
-      
+
       client = AutoClaude::Client.new(
         claude_options: ["--model", model]
       )
-      
+
       session = client.run(prompt)
-      
+
       if session.success?
         puts "  Success with #{model}"
         return session
@@ -191,7 +192,7 @@ class RetryStrategy
         puts "  Failed with #{model}"
       end
     end
-    
+
     nil
   end
 end
@@ -222,31 +223,29 @@ results = []
 
 items.each do |item|
   puts "Processing: #{item}"
-  
+
   # Try with retry
   success = false
   session = nil
-  
+
   2.times do |attempt|
     options = []
-    if session&.session_id && attempt > 0
+    if session&.session_id && attempt.positive?
       options = ["--resume", session.session_id]
       puts "  Retrying with resume..."
     end
-    
+
     client = AutoClaude::Client.new(claude_options: options)
     session = client.run("Process this: #{item}")
-    
-    if session.success?
-      results << { item: item, result: session.result.content, attempts: attempt + 1 }
-      success = true
-      break
-    end
+
+    next unless session.success?
+
+    results << { item: item, result: session.result.content, attempts: attempt + 1 }
+    success = true
+    break
   end
-  
-  unless success
-    results << { item: item, error: session&.result&.error_message || "Unknown error" }
-  end
+
+  results << { item: item, error: session&.result&.error_message || "Unknown error" } unless success
 end
 
 puts "\nResults:"
@@ -267,13 +266,13 @@ puts "=" * 60
 
 def run_with_retry(prompt, session_id = nil)
   max_attempts = 2
-  
+
   max_attempts.times do |attempt|
     options = session_id ? ["--resume", session_id] : []
     client = AutoClaude::Client.new(claude_options: options)
-    
+
     session = client.run(prompt)
-    
+
     if session.success?
       return session
     elsif attempt < max_attempts - 1
@@ -281,7 +280,7 @@ def run_with_retry(prompt, session_id = nil)
       session_id = session.session_id if session.session_id
     end
   end
-  
+
   nil
 end
 
@@ -292,16 +291,14 @@ puts "Running chained operations with retry support:"
 session1 = run_with_retry("Step 1: Start a calculation with 100")
 if session1&.success?
   puts "  Step 1 complete: #{session1.result.content}"
-  
+
   # Step 2 - continue from step 1
   session2 = run_with_retry("Step 2: Multiply the previous number by 2", session1.session_id)
   if session2&.success?
     puts "  Step 2 complete: #{session2.result.content}"
-    
+
     # Step 3 - continue from step 2
     session3 = run_with_retry("Step 3: Add 50 to the result", session2.session_id)
-    if session3&.success?
-      puts "  Step 3 complete: #{session3.result.content}"
-    end
+    puts "  Step 3 complete: #{session3.result.content}" if session3&.success?
   end
 end

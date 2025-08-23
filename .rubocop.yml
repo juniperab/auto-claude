@@ -1,0 +1,75 @@
+plugins:
+  - rubocop-minitest
+  - rubocop-rake
+
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  Exclude:
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - '.git/**/*'
+    - 'bin/*'
+
+# Style preferences for this project
+Style/Documentation:
+  Enabled: false  # We use self-documenting code
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+# Layout preferences
+Layout/LineLength:
+  Max: 120
+  Exclude:
+    - 'test/**/*'  # Tests can have longer lines for readability
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+# Metrics - reasonable for a CLI tool
+Metrics/MethodLength:
+  Max: 30
+  Exclude:
+    - 'test/**/*'
+
+Metrics/ClassLength:
+  Max: 200
+  Exclude:
+    - 'test/**/*'
+
+Metrics/AbcSize:
+  Max: 30
+  Exclude:
+    - 'test/**/*'
+
+Metrics/CyclomaticComplexity:
+  Max: 15
+
+Metrics/PerceivedComplexity:
+  Max: 15
+
+Metrics/BlockLength:
+  Exclude:
+    - 'test/**/*'
+    - '*.gemspec'
+    - 'Rakefile'
+
+# Naming
+Naming/FileName:
+  Exclude:
+    - 'lib/auto-claude.rb'  # Entry point uses hyphen
+
+# Minitest specific
+Minitest/MultipleAssertions:
+  Max: 10  # Allow multiple assertions in tests for thoroughness
+
+Minitest/AssertEmptyLiteral:
+  Enabled: false  # We sometimes prefer assert_equal [] for clarity

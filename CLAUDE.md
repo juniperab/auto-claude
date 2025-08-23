@@ -26,6 +26,31 @@ rake test TESTOPTS="-v"
 rake test TEST="test/auto_claude/output/formatters/*_test.rb"
 ```
 
+### Linting
+```bash
+# Run RuboCop to check code style
+rake rubocop
+# or
+bundle exec rubocop
+
+# Auto-fix safe violations
+rake rubocop:autocorrect
+
+# Auto-fix all violations (safe and unsafe)
+rake rubocop:autocorrect_all
+# or
+bundle exec rubocop -A
+
+# Check specific files or directories
+bundle exec rubocop lib/auto_claude/output/
+
+# Generate offense summary
+bundle exec rubocop --format offenses
+
+# Run tests and linting together (default task)
+rake
+```
+
 ### Building and Installing
 ```bash
 # Install dependencies

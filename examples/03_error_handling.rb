@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Error handling and retry strategies with auto-claude
 # Shows how to handle failures gracefully
 
-require 'auto_claude'
+require "auto_claude"
 
 # =============================================================================
 # 1. Basic error detection
@@ -55,10 +56,10 @@ puts
 puts "3. Automatic retry with App.run"
 puts "=" * 60
 
-# Note: In real usage, this would retry if the first attempt fails
+# NOTE: In real usage, this would retry if the first attempt fails
 result = AutoClaude::App.run(
   "What is 2+2?",
-  retry_on_error: true  # Will retry up to 2 times (3 total attempts)
+  retry_on_error: true # Will retry up to 2 times (3 total attempts)
 )
 
 puts "Result after potential retries: #{result}"
@@ -78,29 +79,29 @@ session = nil
 while attempt < max_attempts
   attempt += 1
   puts "  Attempt #{attempt}/#{max_attempts}..."
-  
+
   # On retry, use session ID from previous attempt if available
   options = []
   if session&.session_id
     options = ["--resume", session.session_id]
     puts "  Resuming from session: #{session.session_id}"
   end
-  
+
   # Create new client with resume option if retrying
   client = AutoClaude::Client.new(claude_options: options) if attempt > 1
-  
+
   session = client.run("Calculate 10 * 5")
-  
+
   if session.success?
     puts "  Success on attempt #{attempt}!"
     puts "  Result: #{session.result.content}"
     break
   else
     puts "  Failed on attempt #{attempt}: #{session.result.error_message}"
-    
+
     if attempt < max_attempts
       puts "  Will retry..."
-      sleep 1  # Brief delay before retry
+      sleep 1 # Brief delay before retry
     else
       puts "  All attempts exhausted."
     end
@@ -114,13 +115,13 @@ puts
 puts "5. Timeout handling (demonstration)"
 puts "=" * 60
 
-require 'timeout'
+require "timeout"
 
 client = AutoClaude::Client.new
 
 begin
   # Set a timeout for the operation
-  Timeout::timeout(30) do  # 30 second timeout
+  Timeout.timeout(30) do # 30 second timeout
     session = client.run("What is the meaning of life?")
     puts "Completed within timeout: #{session.result.content}"
   end
@@ -136,20 +137,18 @@ puts "6. Error recovery with fallback"
 puts "=" * 60
 
 def safe_claude_query(prompt, fallback_response = "Unable to process request")
-  begin
-    client = AutoClaude::Client.new
-    session = client.run(prompt)
-    
-    if session.success?
-      session.result.content
-    else
-      puts "  Claude error: #{session.result.error_message}"
-      fallback_response
-    end
-  rescue => e
-    puts "  Exception: #{e.message}"
+  client = AutoClaude::Client.new
+  session = client.run(prompt)
+
+  if session.success?
+    session.result.content
+  else
+    puts "  Claude error: #{session.result.error_message}"
     fallback_response
   end
+rescue StandardError => e
+  puts "  Exception: #{e.message}"
+  fallback_response
 end
 
 result = safe_claude_query(
@@ -177,11 +176,11 @@ errors = []
 client = AutoClaude::Client.new
 
 questions.each_with_index do |question, i|
-  puts "  Processing question #{i+1}/#{questions.length}..."
-  
+  puts "  Processing question #{i + 1}/#{questions.length}..."
+
   begin
     session = client.run(question)
-    
+
     if session.success?
       results << {
         question: question,
@@ -195,7 +194,7 @@ questions.each_with_index do |question, i|
         session_id: session.session_id
       }
     end
-  rescue => e
+  rescue StandardError => e
     errors << {
       question: question,
       error: e.message,
@@ -234,10 +233,10 @@ puts "Debug Information:"
 puts "  Success: #{session.success?}"
 puts "  Session ID: #{session.session_id}"
 puts "  Messages exchanged: #{session.messages.count}"
-puts "  Duration: #{'%.3f' % session.duration}s"
-puts "  Cost: $#{'%.6f' % session.cost}"
+puts "  Duration: #{"%.3f" % session.duration}s"
+puts "  Cost: $#{"%.6f" % session.cost}"
 
-if !session.success?
+unless session.success?
   puts "\nError details:"
   puts "  Error message: #{session.result.error_message}"
   puts "  Captured errors: #{memory_output.errors.inspect}"

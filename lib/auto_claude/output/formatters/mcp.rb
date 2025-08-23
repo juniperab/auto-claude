@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module AutoClaude
   module Output
     module Formatters
@@ -6,19 +8,19 @@ module AutoClaude
           parts = tool_name.split("__")
           server = parts[1] || "unknown"
           action = parts[2] || parts.last || "action"
-          
+
           emoji = select_emoji(action)
           primary_arg = extract_primary_arg(action, input)
           indent = " " * FormatterConfig::STANDARD_INDENT
-          
+
           "#{emoji} #{humanize_action(action)}: #{primary_arg}\n#{indent}server: #{server}"
         end
-        
+
         private
-        
+
         def select_emoji(action)
           action_lower = action.downcase
-          
+
           if action_lower.include?("search") || action_lower.include?("find")
             FormatterConfig::TOOL_EMOJIS[:mcp_search]
           elsif action_lower.include?("get") || action_lower.include?("fetch") || action_lower.include?("read")
@@ -37,10 +39,10 @@ module AutoClaude
             FormatterConfig::TOOL_EMOJIS[:mcp_default]
           end
         end
-        
-        def extract_primary_arg(action, input)
+
+        def extract_primary_arg(_action, input)
           return "" unless input.is_a?(Hash)
-          
+
           # Try common patterns
           if (query = extract_value(input, "query"))
             "'#{query}'"
@@ -54,18 +56,19 @@ module AutoClaude
             ""
           end
         end
-        
+
         def format_github_reference(input, repo, owner)
           issue_num = extract_value(input, "issue_number")
           pr_num = extract_value(input, "pull_number")
           num = issue_num || pr_num
-          
+
           num ? "#{owner}/#{repo}##{num}" : "#{owner}/#{repo}"
         end
-        
+
         def humanize_action(action)
           return "Unknown" unless action
-          action.to_s.gsub('_', ' ').split.map(&:capitalize).join(' ')
+
+          action.to_s.gsub("_", " ").split.map(&:capitalize).join(" ")
         end
       end
     end

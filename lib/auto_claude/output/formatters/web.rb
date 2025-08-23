@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module AutoClaude
   module Output
     module Formatters
@@ -12,34 +14,37 @@ module AutoClaude
             "🌐 Web: #{tool_name}"
           end
         end
-        
+
         private
-        
+
         def format_webfetch(input)
           url = extract_value(input, "url") || ""
           prompt = extract_value(input, "prompt")
-          
+
           domain = extract_domain(url)
           indent = " " * FormatterConfig::STANDARD_INDENT
-          analyzing = prompt && prompt.length > 0 ? 
-            "\n#{indent}analyzing: #{prompt[0..50]}..." : ""
-          
+          analyzing = if prompt&.length&.positive?
+                        "\n#{indent}analyzing: #{prompt[0..50]}..."
+                      else
+                        ""
+                      end
+
           "#{FormatterConfig::TOOL_EMOJIS[:webfetch]} Fetching #{domain}#{analyzing}"
         end
-        
+
         def format_websearch(input)
           query = extract_value(input, "query") || ""
           "#{FormatterConfig::TOOL_EMOJIS[:websearch]} Web searching: '#{query}'"
         end
-        
+
         def extract_domain(url)
           return "unknown" if url.nil? || url.empty?
-          
+
           if url.match(%r{^https?://([^/]+)})
-            domain = $1
-            domain.sub(/^www\./, '')
-          elsif url.include?('/')
-            url.split('/')[2] || url
+            domain = ::Regexp.last_match(1)
+            domain.sub(/^www\./, "")
+          elsif url.include?("/")
+            url.split("/")[2] || url
           else
             url
           end
