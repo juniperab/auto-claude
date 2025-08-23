@@ -57,7 +57,7 @@ module AutoClaude
         # Verify session has expected data
         assert_predicate session, :success?
         assert_equal "Done", session.result.content
-        
+
         # Verify output received messages
         assert_equal 1, @memory_output.messages.count
         assert_equal "Hello", @memory_output.messages.first.text
@@ -84,7 +84,7 @@ module AutoClaude
         assert_equal "Step 1", messages_received[0].text
         assert_equal "Step 2", messages_received[1].text
         assert_equal "Complete", messages_received[2].content
-        
+
         # Verify session completed successfully
         assert_predicate session, :success?
       end
@@ -102,7 +102,7 @@ module AutoClaude
         thread = client.run_async("test prompt")
 
         assert_kind_of Thread, thread
-        
+
         # Wait for async execution
         session = thread.value
 
@@ -110,7 +110,7 @@ module AutoClaude
         assert_kind_of AutoClaude::Session, session
         assert_predicate session, :success?
         assert_equal "Async done", session.result.content
-        
+
         # Verify output received messages asynchronously
         assert_equal 1, @memory_output.messages.count
       end
@@ -125,7 +125,7 @@ module AutoClaude
         {"type": "assistant", "message": {"content": [{"type": "text", "text": "Concurrent response"}]}}
         {"type": "result", "subtype": "success", "result": "Concurrent result", "success": true, "session_id": "concurrent-session"}
       JSON
-      
+
       Open3.stub :popen3, create_mock_popen(mock_response) do
         threads = 5.times.map do |i|
           client.run_async("prompt #{i}")
@@ -136,14 +136,14 @@ module AutoClaude
         # Verify all sessions completed
         assert_equal 5, sessions.count
         assert_equal 5, client.sessions.count
-        
+
         # Verify each session completed successfully
         sessions.each do |session|
           assert_predicate session, :success?
           assert_equal "Concurrent result", session.result.content
           assert_equal "concurrent-session", session.session_id
         end
-        
+
         # Verify all messages were captured
         assert_equal 5, @memory_output.messages.count
       end
@@ -160,7 +160,7 @@ module AutoClaude
 
         assert_match(/exit code 1/, error.message)
         assert_match(/Command failed/, error.message)
-        
+
         # Verify no session was added on error
         assert_empty client.sessions
       end

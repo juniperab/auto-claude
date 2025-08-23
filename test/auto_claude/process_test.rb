@@ -60,9 +60,9 @@ module AutoClaude
       if ENV["SHELL"]&.include?("zsh") && File.executable?("/usr/bin/env")
         # If user has zsh and env is available, we prefer it
         zsh_available = %w[/usr/bin/zsh /bin/zsh /usr/local/bin/zsh].any? { |p| File.executable?(p) }
-        
+
         shell = wrapper.send(:determine_shell)
-        
+
         if zsh_available
           assert_equal "/usr/bin/env zsh", shell, "Should prefer zsh when available"
         else
