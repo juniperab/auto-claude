@@ -10,14 +10,20 @@ auto-claude is a Ruby CLI tool that wraps the Claude CLI to provide non-interact
 
 ### Testing
 ```bash
-# Run all tests
+# Run all tests (273 tests with 850+ assertions)
 rake test
 
 # Run a specific test file
 ruby -Itest:lib test/auto_claude/app_test.rb
 
+# Run a specific test method
+ruby -Itest:lib test/auto_claude/output/formatter_test.rb -n test_format_todo_list
+
 # Run tests with verbose output
 rake test TESTOPTS="-v"
+
+# Run tests matching a pattern
+rake test TEST="test/auto_claude/output/formatters/*_test.rb"
 ```
 
 ### Building and Installing
@@ -30,6 +36,18 @@ gem build auto_claude.gemspec
 
 # Install locally for testing
 gem install ./auto_claude-*.gem
+
+# Run from source without installing
+bundle exec ruby -Ilib exe/auto-claude "your prompt"
+```
+
+### Debugging
+```bash
+# Enable raw message display (shows JSON messages before formatting)
+AUTOCLAUDE_SHOW_RAW_MESSAGES=160 auto-claude "prompt"
+
+# Disable output filtering (shows all messages including filtered ones)
+AUTOCLAUDE_DISABLE_FILTERS=1 auto-claude "prompt"
 ```
 
 ## Architecture
@@ -47,12 +65,37 @@ gem install ./auto_claude-*.gem
 - JSON stream processing and error handling
 - Session metadata extraction for resume functionality
 
-**AutoClaude::ColorPrinter** (`lib/auto_claude/color_printer.rb`): Handles formatted output with color coding for different message types. Features:
-- Colored terminal output for different message types
-- Log file support with raw JSON logging
-- Stderr callback mechanism for programmatic usage
+**AutoClaude::Output::Formatter** (`lib/auto_claude/output/formatter.rb`): Main formatter orchestrator that delegates to specialized formatters based on message type. Recently refactored from a 500+ line monolithic class into a modular architecture with:
+- FormatterRegistry for managing specialized formatters
+- FormatterConfig for centralized configuration
+- 8 specialized formatters (Bash, File, Search, Web, Task, Todo, MCP, etc.)
+- Helper classes for text truncation, link parsing, and result formatting
 
-**AutoClaude::MessageFormatter** (`lib/auto_claude/message_formatter.rb`): Formats Claude's JSON messages into human-readable output with proper markdown rendering and code block handling.
+**Output System** (`lib/auto_claude/output/`): Modular output system supporting multiple targets:
+- `Terminal`: Colored terminal output with emoji indicators
+- `File`: JSON logging to files
+- `Memory`: In-memory buffering for programmatic usage
+- `Writer`: Base class for output implementations
+
+### Formatter Architecture
+
+The formatter system follows a modular design after recent refactoring:
+
+1. **FormatterConfig** (`formatter_config.rb`): Centralized configuration with constants:
+   - `STANDARD_INDENT = 8`: Consistent indentation for multi-line content
+   - `MAX_PREVIEW_LINES = 5`: Default lines to show in previews
+   - Tool and message emojis
+   - Filtered message prefixes
+
+2. **Specialized Formatters** in `formatters/`:
+   - Each formatter handles specific tool types (File, Search, Web, etc.)
+   - All inherit from `Base` formatter
+   - Consistent 8-space indentation for subordinate content
+
+3. **Helper Classes** in `helpers/`:
+   - `TextTruncator`: Smart text truncation with ellipsis
+   - `LinkParser`: Extracts and formats links from content
+   - `ResultFormatter`: Handles multi-line result formatting with smart indentation
 
 ### Key Design Patterns
 
