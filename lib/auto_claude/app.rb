@@ -27,26 +27,9 @@ module AutoClaude
         session = nil
 
         max_attempts.times do |attempt|
-          # On retry, add --resume with the session ID from the failed attempt
+          # On retry, create client with resume flag
           if attempt.positive? && session&.session_id
-            # Remove any existing --resume flag
-            updated_options = claude_options.reject { |opt| opt == "--resume" || opt.start_with?("--resume=") }
-
-            # Also remove the argument after --resume if it was separate
-            i = 0
-            while i < updated_options.length
-              if updated_options[i] == "--resume"
-                updated_options.delete_at(i) # Remove --resume
-                updated_options.delete_at(i) if i < updated_options.length # Remove the session ID after it
-              else
-                i += 1
-              end
-            end
-
-            # Add the new resume flag with the session ID from the failed attempt
-            updated_options = ["--resume", session.session_id] + updated_options
-
-            # Create a new client with updated options
+            updated_options = App.prepare_resume_options(claude_options, session.session_id)
             client = Client.new(
               directory: directory || Dir.pwd,
               output: output_writer,
@@ -76,6 +59,25 @@ module AutoClaude
         raise last_error if last_error
 
         ""
+      end
+
+      def prepare_resume_options(claude_options, session_id)
+        # Remove any existing --resume flags
+        updated_options = claude_options.reject { |opt| opt == "--resume" || opt.start_with?("--resume=") }
+
+        # Also remove the argument after --resume if it was separate
+        i = 0
+        while i < updated_options.length
+          if updated_options[i] == "--resume"
+            updated_options.delete_at(i) # Remove --resume
+            updated_options.delete_at(i) if i < updated_options.length # Remove the session ID
+          else
+            i += 1
+          end
+        end
+
+        # Add the new resume flag with the session ID
+        ["--resume", session_id] + updated_options
       end
 
       private

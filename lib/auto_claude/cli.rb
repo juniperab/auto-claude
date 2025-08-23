@@ -9,111 +9,144 @@ module AutoClaude
   class CLI
     def self.run(args = ARGV)
       options = parse_arguments(args)
+      handle_help(options)
 
-      # Handle help
-      if options[:help]
-        show_help
-        exit(0)
-      end
-
-      # Get prompt
-      prompt = options[:prompt] || read_stdin
-      if prompt.nil? || prompt.empty?
-        warn "Error: No prompt provided"
-        show_usage
-        exit(1)
-      end
-
-      # Create output
+      prompt = get_prompt(options)
       output = create_output(options)
 
-      # Create client and run
-      client = Client.new(
-        directory: options[:directory] || Dir.pwd,
-        output: output,
-        claude_options: options[:claude_options] || []
-      )
+      session = run_with_retry(prompt, options, output)
+      handle_result(session, options, output)
+    ensure
+      close_output(output)
+    end
 
-      # Handle retry logic
-      max_attempts = options[:retry_on_error] ? 3 : 1 # 3 total attempts = 1 initial + 2 retries
+    def self.handle_help(options)
+      return unless options[:help]
+
+      show_help
+      exit(0)
+    end
+
+    def self.get_prompt(options)
+      prompt = options[:prompt] || read_stdin
+      return prompt if prompt && !prompt.empty?
+
+      warn "Error: No prompt provided"
+      show_usage
+      exit(1)
+    end
+
+    def self.run_with_retry(prompt, options, output)
+      max_attempts = options[:retry_on_error] ? 3 : 1
       session = nil
 
       max_attempts.times do |attempt|
-        # On retry, add --resume with the session ID from the failed attempt
-        if attempt.positive? && session&.session_id
-          # Remove any existing --resume flag and add the new one
-          claude_opts = options[:claude_options].reject { |opt| opt == "--resume" || opt.start_with?("--resume=") }
-
-          # Also remove the argument after --resume if it was separate
-          i = 0
-          while i < claude_opts.length
-            if claude_opts[i] == "--resume"
-              claude_opts.delete_at(i) # Remove --resume
-              claude_opts.delete_at(i) if i < claude_opts.length # Remove the session ID after it
-            else
-              i += 1
-            end
-          end
-
-          # Add the new resume flag with the session ID from the failed attempt
-          claude_opts = ["--resume", session.session_id] + claude_opts
-
-          # Create a new client with updated options
-          client = Client.new(
-            directory: options[:directory] || Dir.pwd,
-            output: output,
-            claude_options: claude_opts
-          )
-
-          output.write_info("Retrying with session ID: #{session.session_id}")
-          output.write_divider
-        end
+        client = create_client_for_attempt(attempt, session, options, output)
 
         session = client.run(prompt)
 
-        # If successful, break out of retry loop
         if session.success?
-          break
+          return session
         elsif !options[:retry_on_error] || attempt == max_attempts - 1
-          # No retry or last attempt failed
           warn "Error: Session failed"
           exit(1)
         end
-        # Otherwise continue to retry
       rescue StandardError => e
-        if options[:retry_on_error] && attempt < max_attempts - 1
-          warn "Error on attempt #{attempt + 1}: #{e.message}"
-          # Continue to retry
+        handle_attempt_error(e, attempt, max_attempts, options)
+      end
+
+      session
+    end
+
+    def self.create_client_for_attempt(attempt, session, options, output)
+      claude_opts = if attempt.positive? && session&.session_id
+                      prepare_resume_options(session, options, output)
+                    else
+                      options[:claude_options] || []
+                    end
+
+      Client.new(
+        directory: options[:directory] || Dir.pwd,
+        output: output,
+        claude_options: claude_opts
+      )
+    end
+
+    def self.prepare_resume_options(session, options, output)
+      claude_opts = remove_existing_resume_flags(options[:claude_options])
+      claude_opts = ["--resume", session.session_id] + claude_opts
+
+      output.write_info("Retrying with session ID: #{session.session_id}")
+      output.write_divider
+
+      claude_opts
+    end
+
+    def self.remove_existing_resume_flags(claude_options)
+      opts = claude_options.reject { |opt| opt == "--resume" || opt.start_with?("--resume=") }
+
+      # Remove the argument after --resume if it was separate
+      i = 0
+      while i < opts.length
+        if opts[i] == "--resume"
+          opts.delete_at(i) # Remove --resume
+          opts.delete_at(i) if i < opts.length # Remove the session ID after it
         else
-          warn "Error: #{e.message}"
-          exit(1)
+          i += 1
         end
       end
 
-      # Print result to stdout
-      if session&.result
-        puts session.result.content unless session.result.content.empty?
+      opts
+    end
 
-        # Write metadata to log file if specified
-        if options[:log_file] && output.is_a?(Output::Multiplexer)
-          file_output = output.instance_variable_get(:@writers).find { |w| w.is_a?(Output::File) }
-          file_output&.write_metadata(session.metadata)
-        end
-
-        exit(0)
+    def self.handle_attempt_error(error, attempt, max_attempts, options)
+      if options[:retry_on_error] && attempt < max_attempts - 1
+        warn "Error on attempt #{attempt + 1}: #{error.message}"
       else
+        warn "Error: #{error.message}"
         exit(1)
-      end
-    ensure
-      begin
-        output.close
-      rescue StandardError
-        nil
       end
     end
 
+    def self.handle_result(session, options, output)
+      exit(1) unless session&.result
+
+      puts session.result.content unless session.result.content.empty?
+
+      write_log_metadata(session, options, output)
+      exit(0)
+    end
+
+    def self.write_log_metadata(session, options, output)
+      return unless options[:log_file] && output.is_a?(Output::Multiplexer)
+
+      file_output = output.instance_variable_get(:@writers).find { |w| w.is_a?(Output::File) }
+      file_output&.write_metadata(session.metadata)
+    end
+
+    def self.close_output(output)
+      output&.close
+    rescue StandardError
+      nil
+    end
+
     def self.parse_arguments(args)
-      options = {
+      options = default_options
+      i = 0
+
+      while i < args.length
+        arg = args[i]
+        i = process_argument(arg, args, i, options)
+        break if options[:claude_options].any? # Stop if we hit --
+
+        i += 1
+      end
+
+      options
+    end
+
+    def self.default_options
+      {
         directory: nil,
         log_file: nil,
         claude_options: [],
@@ -121,44 +154,42 @@ module AutoClaude
         help: false,
         retry_on_error: false
       }
+    end
 
-      i = 0
-      while i < args.length
-        arg = args[i]
-
-        case arg
-        when "-h", "--help"
-          options[:help] = true
-        when "-d", "--directory"
-          i += 1
-          raise ArgumentError, "#{arg} requires a directory argument" if i >= args.length
-
-          options[:directory] = args[i]
-        when "-l", "--log"
-          i += 1
-          raise ArgumentError, "#{arg} requires a file argument" if i >= args.length
-
-          options[:log_file] = args[i]
-        when "-r", "--retry"
-          options[:retry_on_error] = true
-        when "--"
-          # Everything after -- is claude options
-          options[:claude_options] = args[(i + 1)..]
-          break
-        else
-          raise ArgumentError, "Unrecognized option '#{arg}'" if arg.start_with?("-")
-
-          # It's the prompt
-          raise ArgumentError, "Too many arguments" unless options[:prompt].nil?
-
-          options[:prompt] = arg
-
-        end
-
-        i += 1
+    def self.process_argument(arg, args, index, options)
+      case arg
+      when "-h", "--help"
+        options[:help] = true
+        index
+      when "-d", "--directory"
+        options[:directory] = get_required_arg(arg, args, index + 1)
+        index + 1
+      when "-l", "--log"
+        options[:log_file] = get_required_arg(arg, args, index + 1)
+        index + 1
+      when "-r", "--retry"
+        options[:retry_on_error] = true
+        index
+      when "--"
+        options[:claude_options] = args[(index + 1)..]
+        args.length # Force loop to end
+      else
+        handle_positional_arg(arg, options)
+        index
       end
+    end
 
-      options
+    def self.get_required_arg(flag, args, index)
+      raise ArgumentError, "#{flag} requires an argument" if index >= args.length
+
+      args[index]
+    end
+
+    def self.handle_positional_arg(arg, options)
+      raise ArgumentError, "Unrecognized option '#{arg}'" if arg.start_with?("-")
+      raise ArgumentError, "Too many arguments" unless options[:prompt].nil?
+
+      options[:prompt] = arg
     end
 
     def self.create_output(options)
