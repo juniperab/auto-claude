@@ -113,15 +113,7 @@ module AutoClaude
 
       puts session.result.content unless session.result.content.empty?
 
-      write_log_metadata(session, options, output)
       exit(0)
-    end
-
-    def self.write_log_metadata(session, options, output)
-      return unless options[:log_file] && output.is_a?(Output::Multiplexer)
-
-      file_output = output.instance_variable_get(:@writers).find { |w| w.is_a?(Output::File) }
-      file_output&.write_metadata(session.metadata)
     end
 
     def self.close_output(output)

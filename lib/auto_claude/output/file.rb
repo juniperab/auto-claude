@@ -45,10 +45,6 @@ module AutoClaude
         write_indented("---")
       end
 
-      def write_metadata(metadata)
-        write_indented(metadata.to_json)
-      end
-
       def close
         @file.close unless @file.closed?
       end

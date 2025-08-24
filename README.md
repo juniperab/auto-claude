@@ -49,6 +49,10 @@ echo "Explain Ruby blocks" | auto-claude
 # Specify working directory
 auto-claude -d /path/to/project "List the files here"
 
+# Log output to a file
+auto-claude -l output.log "Your prompt"
+auto-claude --log session.txt "Explain recursion"
+
 # Pass options to Claude Code CLI (after --)
 auto-claude "Write a haiku" -- --model haiku --temperature 0.7
 
