@@ -50,6 +50,25 @@ cat prompt.txt | auto-claude
 auto-claude "Your prompt" -- --model claude-4-opus --temperature 0.7
 ```
 
+## Testing
+
+The test suite includes both unit tests and integration tests:
+
+```bash
+# Run unit tests (uses mocked Claude responses)
+rake test
+
+# Run integration tests (makes real Claude API calls)
+rake test:integration
+
+# Run all tests
+rake test:all
+```
+
+**Unit tests** mock `Open3.popen3` to avoid actually calling the Claude CLI, allowing fast and deterministic testing of the formatting and streaming logic.
+
+**Integration tests** make real API calls to verify end-to-end functionality. See [test/integration/README.md](test/integration/README.md) for details on running and writing integration tests.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

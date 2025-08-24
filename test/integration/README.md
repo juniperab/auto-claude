@@ -38,9 +38,40 @@ INTEGRATION=true ruby -Itest:lib test/integration/basic_claude_test.rb
 3. Tests may fail due to network issues or API rate limits
 4. Integration tests are excluded from the default test suite
 
-## Adding New Integration Tests
+## Test Execution Modes
 
-Create new test files in `test/integration/` that inherit from `AutoClaude::IntegrationTest::Base`:
+Integration tests can run in two modes:
+
+### CLI Mode (`run_auto_claude_cli`)
+Spawns a new process like a user running `auto-claude` in terminal. Returns:
+- `:stdout` - Formatted terminal output with colors/emojis
+- `:stderr` - Error messages
+- `:status` - Process exit status
+- `:success` - Boolean
+
+```ruby
+result = run_auto_claude_cli("What is 2+2?")
+assert_match(/4/, result[:stdout])  # Test formatted output
+```
+
+### API Mode (`run_auto_claude_api`) 
+Uses the Ruby Client API directly in-process. Returns:
+- `:result` - Direct result string
+- `:session` - Session object with cost, tokens, etc.
+- `:messages` - Array of message objects
+- `:success` - Boolean
+
+```ruby
+result = run_auto_claude_api("What is 2+2?")
+assert_equal "4", result[:result]  # Direct access to data
+assert result[:session].cost > 0
+```
+
+## Writing Tests
+
+### Creating Test Files
+
+Inherit from `AutoClaude::IntegrationTest::Base`:
 
 ```ruby
 require_relative "integration_helper"
@@ -56,3 +87,21 @@ module AutoClaude
   end
 end
 ```
+
+### Best Practices
+
+1. **Use fuzzy matching** - Claude's output varies:
+   ```ruby
+   # Bad: assert_equal "The answer is 42", result[:stdout]
+   # Good: assert_match(/42/, result[:stdout])
+   ```
+
+2. **Test different models**:
+   ```ruby
+   run_auto_claude_cli("prompt", claude_options: ["--model", "haiku"])
+   ```
+
+3. **Skip gracefully** when tests can't run:
+   ```ruby
+   skip "Expensive test" unless ENV["RUN_EXPENSIVE"]
+   ```
