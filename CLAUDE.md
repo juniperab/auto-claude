@@ -10,8 +10,14 @@ auto-claude is a Ruby CLI tool that wraps the Claude CLI to provide non-interact
 
 ### Testing
 ```bash
-# Run all tests (254 tests with 780+ assertions)
+# Run unit tests only (mocked Claude responses, ~251 tests)
 rake test
+
+# Run integration tests (real Claude API calls)
+rake test:integration
+
+# Run all tests
+rake test:all
 
 # Run a specific test file
 ruby -Itest:lib test/auto_claude/client_test.rb
@@ -19,36 +25,26 @@ ruby -Itest:lib test/auto_claude/client_test.rb
 # Run a specific test method
 ruby -Itest:lib test/auto_claude/output/formatter_test.rb -n test_format_todo_list
 
-# Run tests with verbose output
-rake test TESTOPTS="-v"
+# Run integration test with debug output
+DEBUG=true INTEGRATION=true ruby -Itest:lib test/integration/basic_claude_test.rb
 
 # Run tests matching a pattern
 rake test TEST="test/auto_claude/output/formatters/*_test.rb"
 ```
 
-### Linting
+### Linting and Code Style
 ```bash
-# Run RuboCop to check code style
+# Default task: run tests and RuboCop
+rake
+
+# Run RuboCop only
 rake rubocop
-# or
-bundle exec rubocop
 
-# Auto-fix safe violations
+# Auto-fix RuboCop violations
 rake rubocop:autocorrect
-
-# Auto-fix all violations (safe and unsafe)
-rake rubocop:autocorrect_all
-# or
-bundle exec rubocop -A
 
 # Check specific files or directories
 bundle exec rubocop lib/auto_claude/output/
-
-# Generate offense summary
-bundle exec rubocop --format offenses
-
-# Run tests and linting together (default task)
-rake
 ```
 
 ### Building and Installing
@@ -77,71 +73,65 @@ AUTOCLAUDE_DISABLE_FILTERS=1 auto-claude "prompt"
 
 ## Architecture
 
-### Core Components
+### Core Flow
+1. **CLI Entry** (`lib/auto_claude/cli.rb`) → Parses arguments, separates auto-claude options from Claude options (after `--`)
+2. **Client** (`lib/auto_claude/client.rb`) → Manages sessions, callbacks, and output routing
+3. **Process Manager** (`lib/auto_claude/process/manager.rb`) → Creates shell script wrapper, spawns Claude process with `Open3.popen3`
+4. **Stream Parser** → Parses streaming JSON from Claude into message objects
+5. **Formatter System** → Routes messages to specialized formatters based on tool type
+6. **Output Writers** → Sends formatted output to terminal, file, or memory
 
-**AutoClaude::CLI** (`lib/auto_claude/cli.rb`): Main command-line interface using Thor framework. Handles argument parsing and validation. Key features:
-- Custom argument parsing to split auto-claude options from claude options (separated by `--`)
-- Retry logic with `--resume` support for error recovery
-- Creates and manages Client instances for execution
+### Testing Strategy
 
-**AutoClaude::Client** (`lib/auto_claude/client.rb`): Primary API for running Claude sessions programmatically. Features:
-- Session management and metadata tracking
-- Callback support for real-time message processing
-- Flexible output handling (terminal, file, memory, multiplexed)
+**Unit Tests** (`test/auto_claude/`):
+- All tests mock `Open3.popen3` to avoid calling real Claude CLI
+- Test business logic: formatting, parsing, session management
+- Fast and deterministic
 
-**AutoClaude::Process::Manager** (`lib/auto_claude/process/manager.rb`): Executes the Claude CLI command with streaming JSON output parsing. Manages:
-- Process spawning with Open3
-- Working directory isolation
-- JSON stream processing and error handling
-- Session metadata extraction for resume functionality
+**Integration Tests** (`test/integration/`):
+- Make real Claude API calls
+- **Always run in isolated temp directories** - Claude never accesses project directory
+- Use fuzzy matching for non-deterministic AI output
+- Run with `rake test:integration` or `INTEGRATION=true`
 
-**AutoClaude::Output::Formatter** (`lib/auto_claude/output/formatter.rb`): Main formatter orchestrator that delegates to specialized formatters based on message type. Recently refactored from a 500+ line monolithic class into a modular architecture with:
-- FormatterRegistry for managing specialized formatters
-- FormatterConfig for centralized configuration
-- 8 specialized formatters (Bash, File, Search, Web, Task, Todo, MCP, etc.)
-- Helper classes for text truncation, link parsing, and result formatting
+### Formatter System
 
-**Output System** (`lib/auto_claude/output/`): Modular output system supporting multiple targets:
-- `Terminal`: Colored terminal output with emoji indicators
-- `File`: JSON logging to files
-- `Memory`: In-memory buffering for programmatic usage
-- `Writer`: Base class for output implementations
+The formatter system (`lib/auto_claude/output/`) uses a registry pattern to route messages to specialized formatters:
 
-### Formatter Architecture
+- **FormatterConfig**: Central constants including `STANDARD_INDENT = 8` for consistent indentation
+- **Specialized Formatters** (`formatters/`): Each handles specific tool types (Bash, File, Search, Web, Task, Todo, MCP)
+- **Helper Classes** (`helpers/`): TextTruncator, LinkParser, ResultFormatter for common formatting tasks
 
-The formatter system follows a modular design after recent refactoring:
+All formatters follow the pattern of 8-space indentation for subordinate content to maintain visual hierarchy.
 
-1. **FormatterConfig** (`formatter_config.rb`): Centralized configuration with constants:
-   - `STANDARD_INDENT = 8`: Consistent indentation for multi-line content
-   - `MAX_PREVIEW_LINES = 5`: Default lines to show in previews
-   - Tool and message emojis
-   - Filtered message prefixes
+### Key Implementation Details
 
-2. **Specialized Formatters** in `formatters/`:
-   - Each formatter handles specific tool types (File, Search, Web, etc.)
-   - All inherit from `Base` formatter
-   - Consistent 8-space indentation for subordinate content
+- **Message Parsing**: All Claude JSON responses are parsed into message objects (`lib/auto_claude/messages/`)
+- **Working Directory**: The `-d` option sets Claude's working directory via a shell script wrapper
+- **Process Isolation**: Integration tests always run Claude in temp directories, never in the project directory
+- **Streaming**: Uses `Open3.popen3` to stream and parse Claude's JSON output line-by-line
+- **Error Recovery**: Supports `--resume` flag to retry failed Claude sessions
 
-3. **Helper Classes** in `helpers/`:
-   - `TextTruncator`: Smart text truncation with ellipsis
-   - `LinkParser`: Extracts and formats links from content
-   - `ResultFormatter`: Handles multi-line result formatting with smart indentation
+### Ruby API Usage
 
-### Key Design Patterns
+```ruby
+require 'auto_claude'
 
-1. **Command Separation**: Arguments after `--` are passed directly to the Claude CLI, allowing full access to Claude's options while maintaining auto-claude's formatting layer.
+# Create client with options
+client = AutoClaude::Client.new(
+  directory: "/path/to/work",
+  claude_options: ["--model", "sonnet"],
+  output: AutoClaude::Output::Memory.new
+)
 
-2. **Streaming Processing**: JSON messages from Claude are parsed and formatted in real-time as they stream, providing immediate feedback to users.
+# Run with callback
+session = client.run("Your prompt") do |message|
+  puts "Received: #{message.type}"
+end
 
-3. **Error Recovery**: Built-in retry mechanism using Claude's `--resume` functionality to recover from transient failures.
-
-4. **Dual Interface**: Designed for both CLI usage (`auto-claude` command) and programmatic Ruby usage (`AutoClaude::Client.new.run()`).
-
-## Ruby Dependencies
-
-The project uses:
-- `thor` - CLI framework
-- `zeitwerk` - Automatic code loading
-- `activesupport` - Ruby utilities
-- `minitest` - Testing framework
-- `rake` - Build automation
+# Check results
+if session.success?
+  puts session.result.content
+  puts "Cost: #{session.cost}"
+end
+```
