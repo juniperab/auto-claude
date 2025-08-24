@@ -84,8 +84,7 @@ Lint/MissingSuper:
     - 'examples/**/*'  # Examples may have custom classes
 
 Lint/UnusedMethodArgument:
-  Exclude:
-    - 'lib/auto_claude/app.rb'  # CLI methods may have unused params for compatibility
+  Enabled: true  # No exclusions needed after V1 removal
 
 Style/FormatString:
   Enabled: false  # We prefer String#% for simple formatting

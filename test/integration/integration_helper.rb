@@ -32,7 +32,7 @@ module AutoClaude
       end
 
       # Run auto-claude with real Claude CLI and capture output
-      def run_auto_claude(prompt, options = {})
+      def run_auto_claude_cli(prompt, options = {})
         # Build command
         cmd = ["bundle", "exec", "ruby", "-Ilib", "bin/auto-claude", prompt]
 

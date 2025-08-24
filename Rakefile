@@ -10,24 +10,21 @@ Rake::TestTask.new(:test) do |t|
   t.verbose = true
 end
 
-# Integration tests that use real Claude CLI
-Rake::TestTask.new(:integration) do |t|
-  t.libs << "test"
-  t.libs << "lib"
-  t.test_files = FileList["test/integration/**/*_test.rb"]
-  t.verbose = true
-  t.description = "Run integration tests with real Claude CLI (requires INTEGRATION=true)"
-end
-
 namespace :test do
-  desc "Run all tests including integration (requires INTEGRATION=true for integration tests)"
-  task all: %i[test integration]
-
-  desc "Run only integration tests with real Claude CLI"
-  task :integration_only do
+  desc "Run integration tests with real Claude CLI"
+  task :integration do
     ENV["INTEGRATION"] = "true"
-    Rake::Task[:integration].invoke
+    Rake::TestTask.new(:integration_runner) do |t|
+      t.libs << "test"
+      t.libs << "lib"
+      t.test_files = FileList["test/integration/**/*_test.rb"]
+      t.verbose = true
+    end
+    Rake::Task[:integration_runner].invoke
   end
+
+  desc "Run all tests including integration"
+  task all: %i[test integration]
 end
 
 begin

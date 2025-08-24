@@ -10,17 +10,17 @@ These tests exercise auto-claude with the real Claude CLI. They are not run by d
 ## Running Integration Tests
 
 ```bash
-# Run integration tests only
-rake test:integration_only
-
-# Or set the environment variable manually
-INTEGRATION=true rake integration
+# Run integration tests only (automatically sets INTEGRATION=true)
+rake test:integration
 
 # Run with debug output
-DEBUG=true INTEGRATION=true rake integration
+DEBUG=true rake test:integration
 
 # Run all tests including integration
-INTEGRATION=true rake test:all
+rake test:all
+
+# Run a specific integration test file
+INTEGRATION=true ruby -Itest:lib test/integration/basic_claude_test.rb
 ```
 
 ## What These Tests Do
@@ -49,7 +49,7 @@ module AutoClaude
   module IntegrationTest
     class MyTest < Base
       def test_something
-        result = run_auto_claude("prompt")
+        result = run_auto_claude_cli("prompt")
         assert result[:success]
       end
     end

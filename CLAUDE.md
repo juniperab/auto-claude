@@ -10,11 +10,11 @@ auto-claude is a Ruby CLI tool that wraps the Claude CLI to provide non-interact
 
 ### Testing
 ```bash
-# Run all tests (273 tests with 850+ assertions)
+# Run all tests (254 tests with 780+ assertions)
 rake test
 
 # Run a specific test file
-ruby -Itest:lib test/auto_claude/app_test.rb
+ruby -Itest:lib test/auto_claude/client_test.rb
 
 # Run a specific test method
 ruby -Itest:lib test/auto_claude/output/formatter_test.rb -n test_format_todo_list
@@ -79,12 +79,17 @@ AUTOCLAUDE_DISABLE_FILTERS=1 auto-claude "prompt"
 
 ### Core Components
 
-**AutoClaude::App** (`lib/auto_claude/app.rb`): Main application class using Thor framework. Handles command-line argument parsing, validation, and provides both CLI and programmatic interfaces. Key features:
+**AutoClaude::CLI** (`lib/auto_claude/cli.rb`): Main command-line interface using Thor framework. Handles argument parsing and validation. Key features:
 - Custom argument parsing to split auto-claude options from claude options (separated by `--`)
 - Retry logic with `--resume` support for error recovery
-- Programmatic Ruby API via `App.run()` method
+- Creates and manages Client instances for execution
 
-**AutoClaude::ClaudeRunner** (`lib/auto_claude/claude_runner.rb`): Executes the Claude CLI command with streaming JSON output parsing. Manages:
+**AutoClaude::Client** (`lib/auto_claude/client.rb`): Primary API for running Claude sessions programmatically. Features:
+- Session management and metadata tracking
+- Callback support for real-time message processing
+- Flexible output handling (terminal, file, memory, multiplexed)
+
+**AutoClaude::Process::Manager** (`lib/auto_claude/process/manager.rb`): Executes the Claude CLI command with streaming JSON output parsing. Manages:
 - Process spawning with Open3
 - Working directory isolation
 - JSON stream processing and error handling
@@ -130,7 +135,7 @@ The formatter system follows a modular design after recent refactoring:
 
 3. **Error Recovery**: Built-in retry mechanism using Claude's `--resume` functionality to recover from transient failures.
 
-4. **Dual Interface**: Designed for both CLI usage (`auto-claude` command) and programmatic Ruby usage (`AutoClaude::App.run()`).
+4. **Dual Interface**: Designed for both CLI usage (`auto-claude` command) and programmatic Ruby usage (`AutoClaude::Client.new.run()`).
 
 ## Ruby Dependencies
 

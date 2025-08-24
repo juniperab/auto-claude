@@ -6,7 +6,7 @@ module AutoClaude
   module IntegrationTest
     class BasicClaudeTest < Base
       def test_todays_date_via_cli
-        result = run_auto_claude("What is today's date? Answer in YYYY-MM-DD format.")
+        result = run_auto_claude_cli("What is today's date? Answer in YYYY-MM-DD format.")
 
         assert result[:success], "Command should succeed. stderr: #{result[:stderr]}"
 
@@ -42,7 +42,7 @@ module AutoClaude
       end
 
       def test_simple_math_via_cli
-        result = run_auto_claude("What is 42 + 17? Answer with just the number.")
+        result = run_auto_claude_cli("What is 42 + 17? Answer with just the number.")
 
         assert result[:success], "Command should succeed"
 
@@ -52,7 +52,7 @@ module AutoClaude
 
       def test_with_model_option
         # Test passing Claude options
-        result = run_auto_claude(
+        result = run_auto_claude_cli(
           "Say 'Hello from Claude' exactly",
           claude_options: ["--max-tokens", "50"]
         )
@@ -65,7 +65,7 @@ module AutoClaude
       def test_error_handling
         # Test with an option that might cause an error
         # Using an invalid model to trigger an error
-        result = run_auto_claude(
+        result = run_auto_claude_cli(
           "Test prompt",
           claude_options: ["--model", "invalid-model-xyz"]
         )
