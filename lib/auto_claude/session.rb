@@ -92,6 +92,11 @@ module AutoClaude
     def handle_message(message)
       @messages << message
 
+      # Update session_id whenever we see it (in case it changes)
+      if message.session_id
+        @metadata["session_id"] = message.session_id
+      end
+
       # Track token usage per model
       if message.model && message.token_usage
         model_name = message.model

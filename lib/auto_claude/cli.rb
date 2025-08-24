@@ -43,16 +43,22 @@ module AutoClaude
       max_attempts.times do |attempt|
         client = create_client_for_attempt(attempt, session, options, output)
 
-        session = client.run(prompt)
+        begin
+          session = client.run(prompt)
 
-        if session.success?
-          return session
-        elsif !options[:retry_on_error] || attempt == max_attempts - 1
-          warn "Error: Session failed"
-          exit(1)
+          if session.success?
+            return session
+          elsif !options[:retry_on_error] || attempt == max_attempts - 1
+            warn "Error: Session failed"
+            exit(1)
+          end
+        rescue StandardError => e
+          # The session may have captured a session_id before crashing
+          # Get the most recent session from the client if available
+          session ||= client.sessions.last
+          
+          handle_attempt_error(e, attempt, max_attempts, options, session)
         end
-      rescue StandardError => e
-        handle_attempt_error(e, attempt, max_attempts, options)
       end
 
       session
@@ -99,9 +105,10 @@ module AutoClaude
       opts
     end
 
-    def self.handle_attempt_error(error, attempt, max_attempts, options)
+    def self.handle_attempt_error(error, attempt, max_attempts, options, session = nil)
       if options[:retry_on_error] && attempt < max_attempts - 1
         warn "Error on attempt #{attempt + 1}: #{error.message}"
+        warn "  Will retry with session ID: #{session.session_id}" if session&.session_id
       else
         warn "Error: #{error.message}"
         exit(1)

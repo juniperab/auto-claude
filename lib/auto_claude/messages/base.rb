@@ -6,12 +6,13 @@ require "time"
 module AutoClaude
   module Messages
     class Base
-      attr_reader :type, :timestamp, :raw_json, :model, :token_usage
+      attr_reader :type, :timestamp, :raw_json, :model, :token_usage, :session_id
 
       def initialize(json)
         @raw_json = json
         @type = json["type"]
         @timestamp = Time.now
+        @session_id = json["session_id"] if json.is_a?(Hash)
         extract_model_and_tokens(json)
         parse_json(json)
       end
