@@ -33,43 +33,66 @@ module AutoClaude
 
       # Run auto-claude with real Claude CLI and capture output
       def run_auto_claude_cli(prompt, options = {})
-        # Build command
-        cmd = ["bundle", "exec", "ruby", "-Ilib", "bin/auto-claude", prompt]
+        # ALWAYS run in a temp directory to isolate from project
+        Dir.mktmpdir("auto_claude_test") do |tmpdir|
+          # Use provided directory or the temp directory
+          working_dir = options[:working_directory] || tmpdir
+          
+          # Build command
+          cmd = ["bundle", "exec", "ruby", "-Ilib", "bin/auto-claude"]
+          
+          # Always specify working directory
+          cmd << "-d"
+          cmd << working_dir
+          
+          cmd << prompt
 
-        # Add any additional options
-        if options[:claude_options]
-          cmd << "--"
-          cmd.concat(options[:claude_options])
+          # Add any additional Claude options
+          if options[:claude_options]
+            cmd << "--"
+            cmd.concat(options[:claude_options])
+          end
+
+          # Run the command
+          stdout, stderr, status = Open3.capture3(*cmd)
+
+          {
+            stdout: stdout,
+            stderr: stderr,
+            status: status,
+            success: status.success?,
+            working_directory: working_dir
+          }
         end
-
-        # Run the command
-        stdout, stderr, status = Open3.capture3(*cmd)
-
-        {
-          stdout: stdout,
-          stderr: stderr,
-          status: status,
-          success: status.success?
-        }
       end
 
       # Alternative: run using the Ruby API directly
       def run_auto_claude_api(prompt, options = {})
-        output = AutoClaude::Output::Memory.new
-        client = AutoClaude::Client.new(
-          output: output,
-          claude_options: options[:claude_options] || []
-        )
+        # ALWAYS run in a temp directory to isolate from project
+        Dir.mktmpdir("auto_claude_test") do |tmpdir|
+          # Use provided directory or the temp directory
+          working_dir = options[:directory] || tmpdir
+          
+          output = AutoClaude::Output::Memory.new
+          client_options = {
+            output: output,
+            claude_options: options[:claude_options] || [],
+            directory: working_dir
+          }
+          
+          client = AutoClaude::Client.new(**client_options)
 
-        session = client.run(prompt)
+          session = client.run(prompt)
 
-        {
-          result: session.result&.content,
-          session: session,
-          output: output,
-          messages: output.messages,
-          success: session.success?
-        }
+          {
+            result: session.result&.content,
+            session: session,
+            output: output,
+            messages: output.messages,
+            success: session.success?,
+            working_directory: working_dir
+          }
+        end
       rescue StandardError => e
         {
           error: e,
