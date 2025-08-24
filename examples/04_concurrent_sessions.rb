@@ -1,11 +1,12 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Concurrent and parallel execution with auto-claude
+# Concurrent execution patterns with auto-claude
 # Shows how to run multiple Claude sessions efficiently
 
 require "auto_claude"
 require "benchmark"
+require "fileutils"
 
 # =============================================================================
 # 1. Simple concurrent execution
@@ -15,11 +16,11 @@ puts "=" * 60
 
 client = AutoClaude::Client.new
 
-# Start 3 sessions concurrently
+# Start 3 sessions concurrently using threads
 threads = [
-  client.run_async("What is the capital of France?"),
-  client.run_async("What is the capital of Japan?"),
-  client.run_async("What is the capital of Brazil?")
+  Thread.new { client.run("What is the capital of France?") },
+  Thread.new { client.run("What is the capital of Japan?") },
+  Thread.new { client.run("What is the capital of Brazil?") }
 ]
 
 # Wait for all to complete
@@ -50,7 +51,7 @@ client = AutoClaude::Client.new
 # Process all in parallel
 time = Benchmark.realtime do
   threads = math_problems.map do |problem|
-    client.run_async(problem)
+    Thread.new { client.run(problem) }
   end
 
   # Collect results as they complete
@@ -82,7 +83,7 @@ tasks.each_slice(batch_size).with_index do |batch, batch_num|
   client = AutoClaude::Client.new
 
   # Process this batch in parallel
-  threads = batch.map { |task| client.run_async(task) }
+  threads = batch.map { |task| Thread.new { client.run(task) } }
   batch_results = threads.map(&:value)
 
   batch_results.each_with_index do |session, i|
@@ -153,11 +154,13 @@ puts "=" * 60
 
 client = AutoClaude::Client.new
 
-# Track completion
+# Track completion with thread-safe counter
+require "thread"
+mutex = Mutex.new
 completed = 0
 total = 3
 
-# Start multiple async sessions with callbacks
+# Start multiple sessions with callbacks
 threads = [
   ["What color is the sky?", "Sky"],
   ["What color is grass?", "Grass"],
@@ -166,8 +169,10 @@ threads = [
   Thread.new do
     session = client.run(question) do |message|
       if message.is_a?(AutoClaude::Messages::ResultMessage)
-        completed += 1
-        puts "  [#{completed}/#{total}] #{label} question completed"
+        mutex.synchronize do
+          completed += 1
+          puts "  [#{completed}/#{total}] #{label} question completed"
+        end
       end
     end
     [label, session]
@@ -193,10 +198,10 @@ client = AutoClaude::Client.new
 
 # Different types of tasks
 tasks = {
-  math: "Solve: 2x + 5 = 13",
-  creative: "Write a haiku about coding",
+  math: "What is 15 * 17?",
+  creative: "Write a haiku about Ruby",
   factual: "What year was Ruby created?",
-  analytical: "List pros and cons of async programming"
+  code: "Write a Ruby method to reverse a string"
 }
 
 # Run all concurrently
@@ -227,29 +232,38 @@ puts "=" * 60
 
 client = AutoClaude::Client.new
 
+# Mix of questions - some might fail if rate limited
 questions = [
-  "What is 1+1?",
-  "What is 2+2?",
-  "What is 3+3?"
+  "What is 10 + 10?",
+  "What is 20 + 20?",
+  "What is 30 + 30?"
 ]
 
 successful = []
 failed = []
 
+mutex = Mutex.new
+
 threads = questions.map do |question|
   Thread.new do
-    session = client.run(question)
-
-    if session.success?
-      successful << { question: question, answer: session.result.content }
-    else
-      failed << { question: question, error: session.result.error_message }
+    begin
+      session = client.run(question)
+      
+      mutex.synchronize do
+        if session.success?
+          successful << { question: question, answer: session.result.content }
+        else
+          failed << { question: question, error: session.result.error_message }
+        end
+      end
+      
+      session
+    rescue StandardError => e
+      mutex.synchronize do
+        failed << { question: question, error: e.message }
+      end
+      nil
     end
-
-    session
-  rescue StandardError => e
-    failed << { question: question, error: e.message }
-    nil
   end
 end
 

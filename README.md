@@ -1,14 +1,14 @@
 # auto-claude
 
-A Ruby CLI tool and library that wraps the Claude CLI to provide non-interactive execution with elegant streaming output formatting.
+A Ruby CLI tool and library that wraps the Claude Code CLI to provide non-interactive execution with elegant streaming output formatting.
 
 ## Features
 
-- 🚀 Non-interactive execution of Claude commands
+- 🚀 Non-interactive execution of prompts with Claude Code CLI
 - 🎨 Real-time streaming output with color formatting and emojis
 - 📝 Specialized formatters for different tool types (bash, file operations, search, web, todos)
 - 📁 Working directory support - run Claude in any directory
-- 🔄 Session resume capability for retrying failed commands
+- 🔄 Automatic retry for failed prompts using session resume functionality
 - 💎 Ruby API for programmatic usage
 - 🧪 Comprehensive test suite with unit and integration tests
 
@@ -49,14 +49,11 @@ echo "Explain Ruby blocks" | auto-claude
 # Specify working directory
 auto-claude -d /path/to/project "List the files here"
 
-# Pass options to Claude CLI (after --)
+# Pass options to Claude Code CLI (after --)
 auto-claude "Write a haiku" -- --model haiku --temperature 0.7
 
-# Resume a failed session
-auto-claude --resume
-
-# Save output to file
-auto-claude -o output.txt "Your prompt"
+# Automatically retry if Claude fails while executing a prompt
+auto-claude -r "Your prompt"
 ```
 
 ### Ruby API
@@ -107,21 +104,6 @@ rake rubocop:autocorrect
 **Unit tests** mock the Claude CLI subprocess to test formatting, parsing, and business logic without making API calls.
 
 **Integration tests** make real Claude API calls and run in isolated temporary directories for security. They require Claude CLI to be installed and configured. See [test/integration/README.md](test/integration/README.md) for details.
-
-## Development
-
-See [CLAUDE.md](CLAUDE.md) for detailed development instructions, architecture overview, and debugging tips.
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Write tests for your changes
-4. Ensure all tests pass (`rake test:all`)
-5. Run RuboCop (`rake rubocop:autocorrect`)
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
 
 ## License
 
