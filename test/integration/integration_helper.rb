@@ -37,14 +37,14 @@ module AutoClaude
         Dir.mktmpdir("auto_claude_test") do |tmpdir|
           # Use provided directory or the temp directory
           working_dir = options[:working_directory] || tmpdir
-          
+
           # Build command
           cmd = ["bundle", "exec", "ruby", "-Ilib", "bin/auto-claude"]
-          
+
           # Always specify working directory
           cmd << "-d"
           cmd << working_dir
-          
+
           cmd << prompt
 
           # Add any additional Claude options
@@ -72,14 +72,14 @@ module AutoClaude
         Dir.mktmpdir("auto_claude_test") do |tmpdir|
           # Use provided directory or the temp directory
           working_dir = options[:directory] || tmpdir
-          
+
           output = AutoClaude::Output::Memory.new
           client_options = {
             output: output,
             claude_options: options[:claude_options] || [],
             directory: working_dir
           }
-          
+
           client = AutoClaude::Client.new(**client_options)
 
           session = client.run(prompt)
