@@ -28,8 +28,8 @@ INTEGRATION=true ruby -Itest:lib test/integration/basic_claude_test.rb
 - **test_todays_date_via_cli**: Runs auto-claude via command line, asks for today's date
 - **test_todays_date_via_api**: Uses Ruby API directly, asks for today's date  
 - **test_simple_math_via_cli**: Tests basic math question
-- **test_with_model_option**: Tests passing Claude CLI options
-- **test_error_handling**: Tests error conditions
+- **test_model_selection**: Tests different Claude models (Sonnet vs Haiku) and verifies they identify themselves correctly
+- **test_error_handling**: Tests error conditions with invalid model names
 
 ## Important Notes
 

@@ -50,16 +50,44 @@ module AutoClaude
         assert_match(/\b59\b/, result[:stdout], "Response should contain the answer 59")
       end
 
-      def test_with_model_option
-        # Test passing Claude options
-        result = run_auto_claude_cli(
-          "Say 'Hello from Claude' exactly",
-          claude_options: ["--max-tokens", "50"]
+      def test_model_selection
+        # Test that different models can be selected and they correctly identify themselves
+        prompt = "What model are you? Just say the model name (Sonnet, Opus, or Haiku)"
+
+        # Test with Sonnet model
+        result_sonnet = run_auto_claude_cli(
+          prompt,
+          claude_options: ["--model", "sonnet"]
         )
 
-        assert result[:success], "Command should succeed with options"
-        assert_match(/Hello from Claude/i, result[:stdout],
-                     "Response should contain the requested phrase")
+        skip "Sonnet model not available: #{result_sonnet[:stderr]}" unless result_sonnet[:success]
+
+        assert_match(/Sonnet/i, result_sonnet[:stdout],
+                     "Sonnet model should identify itself as Sonnet")
+
+        # Test with Haiku model
+        result_haiku = run_auto_claude_cli(
+          prompt,
+          claude_options: ["--model", "haiku"]
+        )
+
+        skip "Haiku model not available: #{result_haiku[:stderr]}" unless result_haiku[:success]
+
+        assert_match(/Haiku/i, result_haiku[:stdout],
+                     "Haiku model should identify itself as Haiku")
+
+        # Verify the outputs are different (different models gave different responses)
+        refute_equal result_sonnet[:stdout], result_haiku[:stdout],
+                     "Different models should produce different outputs"
+
+        # Debug output if requested
+        skip unless ENV["DEBUG"]
+
+        puts "\n=== Sonnet Response ==="
+        puts result_sonnet[:stdout]
+        puts "\n=== Haiku Response ==="
+        puts result_haiku[:stdout]
+        puts "===================="
       end
 
       def test_error_handling

@@ -431,12 +431,21 @@ end
 
 ```ruby
 def test_model_selection
-  result = run_auto_claude_cli("Hi", 
-    claude_options: ["--model", "claude-3-haiku-20240307"])
+  # Test that different models correctly identify themselves
+  prompt = "What model are you? Just say the model name"
   
-  assert result[:success]
-  # Haiku model tends to be concise
-  assert result[:stdout].length < 500
+  # Test Sonnet (uses latest Sonnet model)
+  result_sonnet = run_auto_claude_cli(prompt,
+    claude_options: ["--model", "sonnet"])
+  assert_match(/Sonnet/i, result_sonnet[:stdout])
+  
+  # Test Haiku (uses latest Haiku model)
+  result_haiku = run_auto_claude_cli(prompt,
+    claude_options: ["--model", "haiku"])
+  assert_match(/Haiku/i, result_haiku[:stdout])
+  
+  # Verify they gave different responses
+  refute_equal result_sonnet[:stdout], result_haiku[:stdout]
 end
 ```
 
