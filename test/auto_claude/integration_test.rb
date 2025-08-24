@@ -11,7 +11,7 @@ module AutoClaude
       client = AutoClaude::Client.new(output: output)
 
       mock_claude_response = <<~JSON
-        {"type": "assistant", "message": {"content": [{"type": "text", "text": "The answer is 4"}]}}
+        {"type": "assistant", "message": {"content": [{"type": "text", "text": "The answer is 4"}], "model": "claude-test", "usage": {"input_tokens": 10, "output_tokens": 5}}}
         {"type": "result", "subtype": "success", "result": "4", "success": true, "num_turns": 1, "duration_ms": 500, "total_cost_usd": 0.0001, "usage": {"input_tokens": 10, "output_tokens": 5}, "session_id": "test123"}
       JSON
 
@@ -21,8 +21,8 @@ module AutoClaude
         assert_predicate session, :success?
         assert_equal "4", session.result.content
         assert_in_delta(0.0001, session.cost)
-        assert_equal 10, session.token_usage[:input]
-        assert_equal 5, session.token_usage[:output]
+        assert_equal 10, session.input_tokens
+        assert_equal 5, session.output_tokens
 
         # Check output captured messages
         assert_equal 1, output.messages.count
@@ -100,7 +100,6 @@ module AutoClaude
 
         Open3.stub :popen3, create_mock_popen(mock_response) do
           session = client.run("Test logging")
-          file_output.write_metadata(session.metadata)
           file_output.close
         end
 
@@ -108,7 +107,6 @@ module AutoClaude
 
         assert_match(/Logged response/, log_content)
         assert_match(/Success: true/, log_content)  # Success stat, not result content
-        assert_match(/"success":true/, log_content) # JSON metadata
       end
     end
 

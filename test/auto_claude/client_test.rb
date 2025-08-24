@@ -170,7 +170,7 @@ module AutoClaude
       client = AutoClaude::Client.new(output: @memory_output)
 
       mock_response = <<~JSON
-        {"type": "assistant", "message": {"content": [{"type": "text", "text": "Processing"}]}}
+        {"type": "assistant", "message": {"content": [{"type": "text", "text": "Processing"}], "model": "claude-test", "usage": {"input_tokens": 100, "output_tokens": 50}}}
         {"type": "result", "subtype": "success", "result": "Done", "success": true, "num_turns": 2, "duration_ms": 1000, "total_cost_usd": 0.002, "usage": {"input_tokens": 100, "output_tokens": 50}, "session_id": "test-123"}
       JSON
 
@@ -180,7 +180,8 @@ module AutoClaude
         # Verify metadata is properly extracted
         assert_equal "test-123", session.session_id
         assert_in_delta(0.002, session.cost)
-        assert_equal({ input: 100, output: 50 }, session.token_usage)
+        assert_equal 100, session.input_tokens
+        assert_equal 50, session.output_tokens
         assert_equal 2, session.metadata["num_turns"]
         assert_equal 1000, session.metadata["duration_ms"]
       end

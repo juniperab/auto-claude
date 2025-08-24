@@ -6,12 +6,13 @@ require "time"
 module AutoClaude
   module Messages
     class Base
-      attr_reader :type, :timestamp, :raw_json
+      attr_reader :type, :timestamp, :raw_json, :model, :token_usage
 
       def initialize(json)
         @raw_json = json
         @type = json["type"]
         @timestamp = Time.now
+        extract_model_and_tokens(json)
         parse_json(json)
       end
 
@@ -43,6 +44,25 @@ module AutoClaude
 
       def parse_json(json)
         # Override in subclasses
+      end
+
+      def extract_model_and_tokens(json)
+        return unless json.is_a?(Hash)
+        return unless json["message"].is_a?(Hash)
+        
+        # Extract model from message if present
+        @model = json.dig("message", "model")
+
+        # Extract token usage from message if present
+        usage = json.dig("message", "usage") || {}
+        if usage["input_tokens"] || usage["output_tokens"]
+          @token_usage = {
+            input: usage["input_tokens"] || 0,
+            output: usage["output_tokens"] || 0,
+            cache_creation: usage["cache_creation_input_tokens"] || 0,
+            cache_read: usage["cache_read_input_tokens"] || 0
+          }
+        end
       end
 
       def self.parse_assistant_message(json)
